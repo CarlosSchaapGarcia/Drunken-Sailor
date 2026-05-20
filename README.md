@@ -181,6 +181,10 @@ The app uses:
 - Compass needle updates at 30ms intervals
 - Radar sweep rotates at 60 FPS
 
+## Firebase project 
+
+- Project ID: drunken-sailor-f6905
+
 ## License
 
 All code converted from Figma AI export. See ATTRIBUTIONS.md for original design credits.
