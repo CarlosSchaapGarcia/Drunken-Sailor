@@ -1,0 +1,57 @@
+# Flutter and Dart artifacts
+.packages
+.pub/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+pubspec.lock
+
+# Build outputs
+build/
+dist/
+
+# iOS/macOS
+ios/**/*.pbxuser
+ios/**/*.perspective
+ios/**/*.xcworkspace
+ios/Pods/
+ios/Flutter/Flutter.podspec
+ios/Flutter/Generated.xcconfig
+ios/Flutter/ephemeral/
+
+# Android
+android/.gradle
+android/gradlew.bat
+android/local.properties
+android/key.properties
+.android/
+android/app/debug
+android/app/profile
+android/app/release
+
+# Web
+web/
+.dart_tool/
+.packages
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+*.iml
+*.iws
+*.ipr
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.*.local
+
+# Generated files
+coverage/
+.coverage
