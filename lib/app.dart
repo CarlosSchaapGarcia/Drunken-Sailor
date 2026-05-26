@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:geolocator/geolocator.dart';
+import 'services/location_service.dart';
+import 'widgets/location_permission_dialog.dart';
 import 'views/compass_view.dart';
 import 'views/radar_view.dart';
 import 'views/geiger_view.dart';
@@ -29,6 +33,66 @@ class _DrunkenSailorAppState extends State<DrunkenSailorApp> with SingleTickerPr
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: 0);
+    // kick off permission check and start location updates while app is active
+    _initLocation();
+  }
+
+  Future<void> _initLocation() async {
+    try {
+      final status = await Permission.locationWhenInUse.status;
+      if (status.isGranted) {
+        await _startLocation();
+        return;
+      }
+
+      final result = await Permission.locationWhenInUse.request();
+      if (result.isGranted) {
+        await _startLocation();
+        return;
+      }
+
+      // If denied once, show rationale dialog when appropriate
+      if (result.isDenied && await Permission.locationWhenInUse.shouldShowRequestRationale) {
+        await showLocationDeniedDialog(context, _themeForView(currentView));
+      }
+
+      // If permanently denied, offer settings link
+      if (result.isPermanentlyDenied) {
+        await showLocationDeniedDialog(context, _themeForView(currentView));
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  Future<void> _startLocation() async {
+    final enabled = await Geolocator.isLocationServiceEnabled();
+    if (!enabled) {
+      // Prompt user to open location settings
+      await Geolocator.openLocationSettings();
+      // give user a moment; do not crash
+      return;
+    }
+
+    await LocationService().start();
+    // Optionally listen to positions for UI updates
+    LocationService().positionStream.listen((pos) {
+      // Position received; could update UI or store last-known location
+      // For now, we just print to log for debugging
+      // ignore: avoid_print
+      print('Location: ${pos.latitude}, ${pos.longitude} (accuracy ${pos.accuracy}m)');
+    });
+  }
+
+  String _themeForView(ViewMode view) {
+    switch (view) {
+      case ViewMode.compass:
+        return 'pirate';
+      case ViewMode.radar:
+        return 'submarine';
+      case ViewMode.geiger:
+        return 'nuclear';
+    }
   }
 
   @override
