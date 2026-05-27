@@ -17,7 +17,7 @@ class DrunkenSailorApp extends StatefulWidget {
   State<DrunkenSailorApp> createState() => _DrunkenSailorAppState();
 }
 
-class _DrunkenSailorAppState extends State<DrunkenSailorApp> with SingleTickerProviderStateMixin {
+class _DrunkenSailorAppState extends State<DrunkenSailorApp> with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   ViewMode currentView = ViewMode.compass;
   bool showMenu = false;
   late PageController _pageController;
@@ -34,6 +34,8 @@ class _DrunkenSailorAppState extends State<DrunkenSailorApp> with SingleTickerPr
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: 0);
+    // observe app lifecycle to pause/resume location updates
+    WidgetsBinding.instance.addObserver(this);
     // kick off permission check and start location updates while app is active
     _initLocation();
   }
@@ -98,8 +100,25 @@ class _DrunkenSailorAppState extends State<DrunkenSailorApp> with SingleTickerPr
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _pageController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.paused) {
+      // App no longer in foreground — stop location polling to save battery
+      LocationService().stop();
+    } else if (state == AppLifecycleState.resumed) {
+      // App returned to foreground — restart if permission still granted
+      Permission.locationWhenInUse.status.then((status) {
+        if (status.isGranted) {
+          _startLocation();
+        }
+      });
+    }
   }
 
   void _onPageChanged(int index) {
