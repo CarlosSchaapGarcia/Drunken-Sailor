@@ -3,6 +3,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:geolocator/geolocator.dart';
 import 'services/location_service.dart';
 import 'widgets/location_permission_dialog.dart';
+import 'widgets/location_debug_overlay.dart';
 import 'views/compass_view.dart';
 import 'views/radar_view.dart';
 import 'views/geiger_view.dart';
@@ -117,7 +118,7 @@ class _DrunkenSailorAppState extends State<DrunkenSailorApp> with SingleTickerPr
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    final scaffold = Scaffold(
       drawer: _buildMenu(),
       body: Column(
         children: [
@@ -230,6 +231,23 @@ class _DrunkenSailorAppState extends State<DrunkenSailorApp> with SingleTickerPr
           ),
         ],
       ),
+    );
+
+    return Stack(
+      children: [
+        scaffold,
+        const LocationDebugOverlay(),
+      ],
+    );
+  }
+
+  @override
+  Widget buildStacked(BuildContext context) {
+    return Stack(
+      children: [
+        build(context),
+        const LocationDebugOverlay(),
+      ],
     );
   }
 
