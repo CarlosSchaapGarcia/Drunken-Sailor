@@ -1,0 +1,16 @@
+type City @table {
+  id: UUID! @default(expr: "uuid_generate_v4()")
+  name: String!
+  latitude: Float!
+  longitude: Float!
+}
+
+type Bar @table {
+  id: UUID! @default(expr: "uuid_generate_v4()")
+  city: City!
+  name: String!
+  latitude: Float!
+  longitude: Float!
+  category: String
+  isBlacklisted: Boolean! @default(value: false)
+}

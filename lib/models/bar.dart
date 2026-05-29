@@ -1,3 +1,5 @@
+import 'dart:math';
+
 class Bar {
   final String id;
   final String name;
