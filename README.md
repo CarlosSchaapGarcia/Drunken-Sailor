@@ -96,6 +96,10 @@ Users can navigate between the three views by:
 - **Tapping navigation dots** at the bottom
 - **Using the side menu** to jump directly to a view
 
+## Debug Features
+
+**GPS debug overlay** — hold the hamburger menu icon (top-left) for **5 seconds**. A small overlay appears in the bottom-right corner showing live lat/lng/accuracy. Hold again to dismiss it.
+
 ## Database Schema
 
 ### Bar Model

@@ -1,4 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:geolocator/geolocator.dart';
+import 'services/location_service.dart';
+import 'widgets/location_permission_dialog.dart';
+import 'widgets/location_debug_overlay.dart';
 import 'views/compass_view.dart';
 import 'views/radar_view.dart';
 import 'views/geiger_view.dart';
@@ -12,9 +18,13 @@ class DrunkenSailorApp extends StatefulWidget {
   State<DrunkenSailorApp> createState() => _DrunkenSailorAppState();
 }
 
-class _DrunkenSailorAppState extends State<DrunkenSailorApp> with SingleTickerProviderStateMixin {
+class _DrunkenSailorAppState extends State<DrunkenSailorApp> with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   ViewMode currentView = ViewMode.compass;
   bool showMenu = false;
+  bool _showDebugOverlay = false;
+  Timer? _menuLongPressTimer;
+  bool _longPressFired = false;
+  final Duration _longPressDuration = const Duration(seconds: 5);
   late PageController _pageController;
 
   final Map<ViewMode, String> viewTitles = {
@@ -29,12 +39,91 @@ class _DrunkenSailorAppState extends State<DrunkenSailorApp> with SingleTickerPr
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: 0);
+    // observe app lifecycle to pause/resume location updates
+    WidgetsBinding.instance.addObserver(this);
+    // kick off permission check and start location updates while app is active
+    _initLocation();
+  }
+
+  Future<void> _initLocation() async {
+    try {
+      final status = await Permission.locationWhenInUse.status;
+      if (status.isGranted) {
+        await _startLocation();
+        return;
+      }
+
+      final result = await Permission.locationWhenInUse.request();
+      if (result.isGranted) {
+        await _startLocation();
+        return;
+      }
+
+      // If denied once, show rationale dialog when appropriate
+      if (result.isDenied && await Permission.locationWhenInUse.shouldShowRequestRationale) {
+        await showLocationDeniedDialog(context, _themeForView(currentView));
+      }
+
+      // If permanently denied, offer settings link
+      if (result.isPermanentlyDenied) {
+        await showLocationDeniedDialog(context, _themeForView(currentView));
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  Future<void> _startLocation() async {
+    final enabled = await Geolocator.isLocationServiceEnabled();
+    if (!enabled) {
+      // Prompt user to open location settings
+      await Geolocator.openLocationSettings();
+      // give user a moment; do not crash
+      return;
+    }
+
+    await LocationService().start();
+    // Optionally listen to positions for UI updates
+    LocationService().positionStream.listen((pos) {
+      // Position received; could update UI or store last-known location
+      // For now, we just print to log for debugging
+      // ignore: avoid_print
+      print('Location: ${pos.latitude}, ${pos.longitude} (accuracy ${pos.accuracy}m)');
+    });
+  }
+
+  String _themeForView(ViewMode view) {
+    switch (view) {
+      case ViewMode.compass:
+        return 'pirate';
+      case ViewMode.radar:
+        return 'submarine';
+      case ViewMode.geiger:
+        return 'nuclear';
+    }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _pageController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.paused) {
+      // App no longer in foreground — stop location polling to save battery
+      LocationService().stop();
+    } else if (state == AppLifecycleState.resumed) {
+      // App returned to foreground — restart if permission still granted
+      Permission.locationWhenInUse.status.then((status) {
+        if (status.isGranted) {
+          _startLocation();
+        }
+      });
+    }
   }
 
   void _onPageChanged(int index) {
@@ -53,7 +142,7 @@ class _DrunkenSailorAppState extends State<DrunkenSailorApp> with SingleTickerPr
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    final scaffold = Scaffold(
       drawer: _buildMenu(),
       body: Column(
         children: [
@@ -70,9 +159,22 @@ class _DrunkenSailorAppState extends State<DrunkenSailorApp> with SingleTickerPr
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Builder(
-                  builder: (context) => IconButton(
-                    icon: const Icon(Icons.menu, size: 24),
-                    onPressed: () => Scaffold.of(context).openDrawer(),
+                  builder: (context) => GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () {
+                      if (_longPressFired) {
+                        _longPressFired = false;
+                        return;
+                      }
+                      Scaffold.of(context).openDrawer();
+                    },
+                    onTapDown: (_) => _startMenuPressTimer(),
+                    onTapUp: (_) => _cancelMenuPressTimer(),
+                    onTapCancel: () => _cancelMenuPressTimer(),
+                    child: const Padding(
+                      padding: EdgeInsets.all(8.0),
+                      child: Icon(Icons.menu, size: 24),
+                    ),
                   ),
                 ),
                 Text(
@@ -167,6 +269,13 @@ class _DrunkenSailorAppState extends State<DrunkenSailorApp> with SingleTickerPr
         ],
       ),
     );
+
+    return Stack(
+      children: [
+        scaffold,
+        if (_showDebugOverlay) LocationDebugOverlay(onClose: _toggleDebugOverlay),
+      ],
+    );
   }
 
   Widget _buildMenu() {
@@ -247,5 +356,25 @@ class _DrunkenSailorAppState extends State<DrunkenSailorApp> with SingleTickerPr
         ),
       ),
     );
+  }
+
+  void _startMenuPressTimer() {
+    _longPressFired = false;
+    _menuLongPressTimer?.cancel();
+    _menuLongPressTimer = Timer(_longPressDuration, () {
+      _longPressFired = true;
+      _toggleDebugOverlay();
+    });
+  }
+
+  void _cancelMenuPressTimer() {
+    _menuLongPressTimer?.cancel();
+    _menuLongPressTimer = null;
+  }
+
+  void _toggleDebugOverlay() {
+    setState(() {
+      _showDebugOverlay = !_showDebugOverlay;
+    });
   }
 }
