@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:geolocator/geolocator.dart';
@@ -20,6 +21,10 @@ class DrunkenSailorApp extends StatefulWidget {
 class _DrunkenSailorAppState extends State<DrunkenSailorApp> with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   ViewMode currentView = ViewMode.compass;
   bool showMenu = false;
+  bool _showDebugOverlay = false;
+  Timer? _menuLongPressTimer;
+  bool _longPressFired = false;
+  final Duration _longPressDuration = const Duration(seconds: 5);
   late PageController _pageController;
 
   final Map<ViewMode, String> viewTitles = {
@@ -154,9 +159,22 @@ class _DrunkenSailorAppState extends State<DrunkenSailorApp> with SingleTickerPr
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Builder(
-                  builder: (context) => IconButton(
-                    icon: const Icon(Icons.menu, size: 24),
-                    onPressed: () => Scaffold.of(context).openDrawer(),
+                  builder: (context) => GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () {
+                      if (_longPressFired) {
+                        _longPressFired = false;
+                        return;
+                      }
+                      Scaffold.of(context).openDrawer();
+                    },
+                    onTapDown: (_) => _startMenuPressTimer(),
+                    onTapUp: (_) => _cancelMenuPressTimer(),
+                    onTapCancel: () => _cancelMenuPressTimer(),
+                    child: const Padding(
+                      padding: EdgeInsets.all(8.0),
+                      child: Icon(Icons.menu, size: 24),
+                    ),
                   ),
                 ),
                 Text(
@@ -255,17 +273,7 @@ class _DrunkenSailorAppState extends State<DrunkenSailorApp> with SingleTickerPr
     return Stack(
       children: [
         scaffold,
-        const LocationDebugOverlay(),
-      ],
-    );
-  }
-
-  @override
-  Widget buildStacked(BuildContext context) {
-    return Stack(
-      children: [
-        build(context),
-        const LocationDebugOverlay(),
+        if (_showDebugOverlay) LocationDebugOverlay(onClose: _toggleDebugOverlay),
       ],
     );
   }
@@ -348,5 +356,25 @@ class _DrunkenSailorAppState extends State<DrunkenSailorApp> with SingleTickerPr
         ),
       ),
     );
+  }
+
+  void _startMenuPressTimer() {
+    _longPressFired = false;
+    _menuLongPressTimer?.cancel();
+    _menuLongPressTimer = Timer(_longPressDuration, () {
+      _longPressFired = true;
+      _toggleDebugOverlay();
+    });
+  }
+
+  void _cancelMenuPressTimer() {
+    _menuLongPressTimer?.cancel();
+    _menuLongPressTimer = null;
+  }
+
+  void _toggleDebugOverlay() {
+    setState(() {
+      _showDebugOverlay = !_showDebugOverlay;
+    });
   }
 }

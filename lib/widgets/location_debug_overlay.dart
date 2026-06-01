@@ -33,21 +33,21 @@ class _LocationDebugOverlayState extends State<LocationDebugOverlay> {
           IgnorePointer(
             ignoring: true,
             child: Container(
-              padding: const EdgeInsets.all(8),
+              width: 110,
+              padding: const EdgeInsets.all(5),
               decoration: BoxDecoration(
                 color: Colors.black.withOpacity(0.6),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(6),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (_pos == null) ...[
-                    const Text('GPS: waiting for fix...', style: TextStyle(color: Colors.white)),
+                    const Text('GPS: waiting...', style: TextStyle(color: Colors.white, fontSize: 8)),
                   ] else ...[
-                    Text('Lat: ${_pos!.latitude.toStringAsFixed(6)}', style: const TextStyle(color: Colors.white)),
-                    Text('Lng: ${_pos!.longitude.toStringAsFixed(6)}', style: const TextStyle(color: Colors.white)),
-                    Text('Acc: ${_pos!.accuracy.toStringAsFixed(1)} m', style: const TextStyle(color: Colors.white)),
-                    Text('Time: ${DateTime.fromMillisecondsSinceEpoch(_pos!.timestamp?.millisecondsSinceEpoch ?? 0)}', style: const TextStyle(color: Colors.white, fontSize: 10)),
+                    Text('Lat: ${_pos!.latitude.toStringAsFixed(5)}', style: const TextStyle(color: Colors.white, fontSize: 8)),
+                    Text('Lng: ${_pos!.longitude.toStringAsFixed(5)}', style: const TextStyle(color: Colors.white, fontSize: 8)),
+                    Text('Acc: ${_pos!.accuracy.toStringAsFixed(1)} m', style: const TextStyle(color: Colors.white, fontSize: 8)),
                   ]
                 ],
               ),
