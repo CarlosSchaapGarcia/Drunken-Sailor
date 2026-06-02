@@ -66,8 +66,11 @@ class _DrunkenSailorAppState extends ConsumerState<DrunkenSailorApp>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
     final service = ref.read(locationServiceProvider);
+    final vibration = ref.read(vibrationServiceProvider);
+    
     if (state == AppLifecycleState.paused) {
       service.stop();
+      vibration.stop();
     } else if (state == AppLifecycleState.resumed) {
       Permission.locationWhenInUse.status.then((s) {
         if (s.isGranted) service.start();
@@ -155,6 +158,9 @@ class _DrunkenSailorAppState extends ConsumerState<DrunkenSailorApp>
   Widget build(BuildContext context) {
     final showDebug = ref.watch(showDebugOverlayProvider);
     final nearestAsync = ref.watch(nearestBarProvider);
+    
+    // Watch vibration trigger to update on distance changes
+    ref.watch(vibrationTriggerProvider);
 
     final scaffold = Scaffold(
       drawer: _buildMenu(),

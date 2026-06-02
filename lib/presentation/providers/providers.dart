@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../data/repositories/firestore_bar_repository.dart';
 import '../../data/services/location_service.dart';
+import '../../data/services/vibration_service.dart';
 import '../../domain/models/bar.dart';
 import '../../domain/repositories/bar_repository.dart';
 
@@ -13,6 +14,10 @@ final barRepositoryProvider = Provider<BarRepository>(
 
 final locationServiceProvider = Provider<LocationService>(
   (ref) => LocationService(),
+);
+
+final vibrationServiceProvider = Provider<VibrationService>(
+  (ref) => VibrationService(),
 );
 
 // -- UI state providers --
@@ -46,6 +51,36 @@ final nearestBarProvider = FutureProvider.autoDispose<int?>((ref) async {
   final open = nearby.where((b) => b.isOpenAt(now)).toList();
   if (open.isNotEmpty) return open.first.distanceTo(pos.latitude, pos.longitude);
   return -nearby.first.distanceTo(pos.latitude, pos.longitude);
+});
+
+// -- Vibration trigger on distance change --
+final vibrationTriggerProvider = StreamProvider.autoDispose<void>((ref) {
+  final nearestBarAsync = ref.watch(nearestBarProvider);
+  final vibrationService = ref.watch(vibrationServiceProvider);
+
+  return nearestBarAsync.maybeWhen(
+    data: (distance) {
+      if (distance == null) {
+        vibrationService.stop();
+        return Stream.value(null);
+      }
+
+      final absDistance = distance.abs();
+      
+      // Update vibration based on distance
+      if (absDistance <= 50000) {
+        vibrationService.updateForDistance(absDistance);
+      } else {
+        vibrationService.stop();
+      }
+
+      return Stream.value(null);
+    },
+    orElse: () {
+      vibrationService.stop();
+      return Stream.value(null);
+    },
+  );
 });
 
 final openBarPositionsProvider = StreamProvider.autoDispose<List<BarRelativePosition>>((ref) {
