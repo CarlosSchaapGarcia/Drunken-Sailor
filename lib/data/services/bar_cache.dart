@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../models/bar.dart';
+import '../../domain/models/bar.dart';
 
 class BarCache {
   static const _keyBars = 'cached_bars';

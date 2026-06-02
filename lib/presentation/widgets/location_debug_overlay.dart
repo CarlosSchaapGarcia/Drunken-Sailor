@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
-import '../services/location_service.dart';
+import '../../data/services/location_service.dart';
 
 class LocationDebugOverlay extends StatefulWidget {
   final VoidCallback? onClose;
