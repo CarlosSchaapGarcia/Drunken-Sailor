@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'models/firebase_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:geolocator/geolocator.dart';
 import 'services/location_service.dart';
@@ -27,6 +28,9 @@ class _DrunkenSailorAppState extends State<DrunkenSailorApp> with SingleTickerPr
   final Duration _longPressDuration = const Duration(seconds: 5);
   late PageController _pageController;
 
+  // null = still loading, positive = open bar, negative = all bars closed
+  double? _nearestBarDistanceKm;
+
   final Map<ViewMode, String> viewTitles = {
     ViewMode.compass: 'Pirate Compass',
     ViewMode.radar: 'Submarine Radar',
@@ -39,10 +43,20 @@ class _DrunkenSailorAppState extends State<DrunkenSailorApp> with SingleTickerPr
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: 0);
-    // observe app lifecycle to pause/resume location updates
     WidgetsBinding.instance.addObserver(this);
-    // kick off permission check and start location updates while app is active
     _initLocation();
+    _checkFirebase();
+  }
+
+  Future<void> _checkFirebase() async {
+    try {
+      final bars = await FirebaseService().getAllBars();
+      // ignore: avoid_print
+      print('[Firebase] Connected — ${bars.length} bars loaded');
+    } catch (e) {
+      // ignore: avoid_print
+      print('[Firebase] Connection failed: $e');
+    }
   }
 
   Future<void> _initLocation() async {
@@ -83,13 +97,29 @@ class _DrunkenSailorAppState extends State<DrunkenSailorApp> with SingleTickerPr
     }
 
     await LocationService().start();
-    // Optionally listen to positions for UI updates
-    LocationService().positionStream.listen((pos) {
-      // Position received; could update UI or store last-known location
-      // For now, we just print to log for debugging
-      // ignore: avoid_print
-      print('Location: ${pos.latitude}, ${pos.longitude} (accuracy ${pos.accuracy}m)');
-    });
+    LocationService().positionStream.listen((pos) => _updateNearestBar(pos));
+  }
+
+  Future<void> _updateNearestBar(Position pos) async {
+    try {
+      final nearby = await FirebaseService().findNearbyBars(pos.latitude, pos.longitude);
+      if (!mounted) return;
+      final now = DateTime.now();
+      final open = nearby.where((b) => b.isOpenAt(now)).toList();
+      setState(() {
+        if (open.isNotEmpty) {
+          _nearestBarDistanceKm = open.first.distanceTo(pos.latitude, pos.longitude);
+        } else if (nearby.isNotEmpty) {
+          _nearestBarDistanceKm = -nearby.first.distanceTo(pos.latitude, pos.longitude);
+        }
+      });
+    } catch (_) {}
+  }
+
+  String _formatDistance(double km) {
+    final meters = (km.abs() * 1000).round();
+    final abs = meters < 1000 ? '${meters}m' : '${(km.abs()).toStringAsFixed(1)}km';
+    return km < 0 ? '-$abs' : abs;
   }
 
   String _themeForView(ViewMode view) {
@@ -208,22 +238,27 @@ class _DrunkenSailorAppState extends State<DrunkenSailorApp> with SingleTickerPr
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text(
-                  'Destination in',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF94a3b8),
-                  ),
+                Text(
+                  _nearestBarDistanceKm == null
+                      ? 'Locating...'
+                      : _nearestBarDistanceKm! >= 0
+                          ? 'Destination in'
+                          : 'All closed, nearest',
+                  style: const TextStyle(fontSize: 14, color: Color(0xFF94a3b8)),
                 ),
-                const SizedBox(width: 16),
-                const Text(
-                  '500m',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF10b981),
+                if (_nearestBarDistanceKm != null) ...[
+                  const SizedBox(width: 16),
+                  Text(
+                    _formatDistance(_nearestBarDistanceKm!),
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: _nearestBarDistanceKm! >= 0
+                          ? const Color(0xFF10b981)
+                          : const Color(0xFFef4444),
+                    ),
                   ),
-                ),
+                ],
               ],
             ),
           ),

@@ -1,9 +1,11 @@
+import 'dart:math';
+
 class Bar {
   final String id;
   final String name;
   final double latitude;
   final double longitude;
-  final String? category; // 'regular', 'gay', etc.
+  final bool gayFriendly;
   final Map<String, OpeningHours> hours;
   final bool isBlacklisted;
 
@@ -12,7 +14,7 @@ class Bar {
     required this.name,
     required this.latitude,
     required this.longitude,
-    this.category,
+    this.gayFriendly = false,
     required this.hours,
     this.isBlacklisted = false,
   });
@@ -23,7 +25,7 @@ class Bar {
       name: json['name'] ?? '',
       latitude: (json['latitude'] ?? 0).toDouble(),
       longitude: (json['longitude'] ?? 0).toDouble(),
-      category: json['category'],
+      gayFriendly: json['gay_friendly'] ?? false,
       hours: Map<String, OpeningHours>.from(
         (json['hours'] as Map? ?? {}).map(
           (k, v) => MapEntry(k, OpeningHours.fromJson(v)),
@@ -39,7 +41,7 @@ class Bar {
       'name': name,
       'latitude': latitude,
       'longitude': longitude,
-      'category': category,
+      'gay_friendly': gayFriendly,
       'hours': hours.map((k, v) => MapEntry(k, v.toJson())),
       'isBlacklisted': isBlacklisted,
     };
@@ -52,7 +54,7 @@ class Bar {
     final a = (sin(dLat / 2) * sin(dLat / 2)) +
         (cos(_toRad(latitude)) * cos(_toRad(userLat)) * sin(dLon / 2) * sin(dLon / 2));
     final c = 2 * atan2(sqrt(a), sqrt(1 - a));
-    return earthRadiusKm * c;
+    return (earthRadiusKm * c).toDouble();
   }
 
   double _toRad(double degree) => degree * (3.141592653589793 / 180);

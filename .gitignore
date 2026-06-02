@@ -48,6 +48,13 @@ web/
 .DS_Store
 Thumbs.db
 
+# Firebase service account key — never commit this
+scripts/serviceAccountKey.json
+
+# Node dependencies
+node_modules/
+scripts/node_modules/
+
 # Environment
 .env
 .env.*.local
