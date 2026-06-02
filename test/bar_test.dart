@@ -67,11 +67,11 @@ void main() {
       expect(bar.distanceTo(52.7897, 6.8942), equals(0));
     });
 
-    test('known distance: Emmen to Amsterdam ~175km', () {
+    test('known distance: Emmen to Amsterdam ~142km crow-flies', () {
       final bar = _bar(); // 52.7897, 6.8942 (Emmen)
       final distM = bar.distanceTo(52.3676, 4.9041); // Amsterdam
-      expect(distM, greaterThan(170000));
-      expect(distM, lessThan(180000));
+      expect(distM, greaterThan(135000));
+      expect(distM, lessThan(155000));
     });
 
     test('short distance within city is reasonable', () {
