@@ -1,8 +1,6 @@
 import 'dart:async';
-
 import 'package:geolocator/geolocator.dart';
 
-/// Simple foreground-only location service for use while the app is active.
 class LocationService {
   static final LocationService _instance = LocationService._internal();
   factory LocationService() => _instance;
@@ -17,9 +15,15 @@ class LocationService {
   Timer? _timer;
 
   Future<void> start() async {
-    // Ensure permissions and services are ready are handled by caller.
     _timer?.cancel();
-    // Immediately fetch once and then every 5 seconds
+
+    // Emit last known position immediately so the UI isn't blank while waiting for a fresh fix.
+    final last = await Geolocator.getLastKnownPosition();
+    if (last != null) {
+      _lastKnown = last;
+      _controller.add(last);
+    }
+
     await _fetchAndEmit();
     _timer = Timer.periodic(const Duration(seconds: 5), (_) async {
       await _fetchAndEmit();
@@ -34,37 +38,33 @@ class LocationService {
   Future<void> _fetchAndEmit() async {
     try {
       final enabled = await Geolocator.isLocationServiceEnabled();
-      if (!enabled) {
-        // nothing emitted; caller should handle prompting to open settings
-        return;
-      }
+      if (!enabled) return;
 
-      // Try to obtain a reasonably accurate fix (<= 20m). Retry a few times before giving up.
-      const int maxAttempts = 3;
-      Position? best;
-      for (var attempt = 0; attempt < maxAttempts; attempt++) {
-        try {
-          final p = await Geolocator.getCurrentPosition(
-            desiredAccuracy: LocationAccuracy.best,
-            timeLimit: const Duration(seconds: 8),
-          );
-          if (best == null || (p.accuracy < best.accuracy)) best = p;
-          if (p.accuracy <= 20) {
-            best = p;
-            break;
-          }
-        } catch (_) {}
-        // small delay between attempts
-        await Future.delayed(const Duration(milliseconds: 500));
-      }
+      // First attempt: fast, accepts any accuracy — emits quickly so UI updates.
+      try {
+        final quick = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.medium,
+          timeLimit: const Duration(seconds: 3),
+        );
+        if (_lastKnown == null || quick.accuracy < (_lastKnown!.accuracy * 1.5)) {
+          _lastKnown = quick;
+          _controller.add(quick);
+        }
+        if (quick.accuracy <= 20) return; // good enough, skip refine pass
+      } catch (_) {}
 
-      if (best != null) {
-        _lastKnown = best;
-        _controller.add(best);
-      }
-    } catch (e) {
-      // ignore errors here; caller can listen to stream/errors if needed
-    }
+      // Refine pass: try for a high-accuracy fix if the quick one wasn't precise enough.
+      try {
+        final precise = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.best,
+          timeLimit: const Duration(seconds: 8),
+        );
+        if (_lastKnown == null || precise.accuracy < _lastKnown!.accuracy) {
+          _lastKnown = precise;
+          _controller.add(precise);
+        }
+      } catch (_) {}
+    } catch (_) {}
   }
 
   void dispose() {

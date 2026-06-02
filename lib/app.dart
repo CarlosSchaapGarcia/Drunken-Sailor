@@ -28,8 +28,10 @@ class _DrunkenSailorAppState extends State<DrunkenSailorApp> with SingleTickerPr
   final Duration _longPressDuration = const Duration(seconds: 5);
   late PageController _pageController;
 
-  // null = still loading, positive = open bar, negative = all bars closed
-  double? _nearestBarDistanceKm;
+  // null = still loading, positive = open bar, negative = all bars closed (meters)
+  int? _nearestBarDistanceM;
+  DateTime? _lastBarFetch;
+  static const _barFetchInterval = Duration(seconds: 30);
 
   final Map<ViewMode, String> viewTitles = {
     ViewMode.compass: 'Pirate Compass',
@@ -97,7 +99,13 @@ class _DrunkenSailorAppState extends State<DrunkenSailorApp> with SingleTickerPr
     }
 
     await LocationService().start();
-    LocationService().positionStream.listen((pos) => _updateNearestBar(pos));
+    LocationService().positionStream.listen((pos) {
+      final now = DateTime.now();
+      if (_lastBarFetch == null || now.difference(_lastBarFetch!) >= _barFetchInterval) {
+        _lastBarFetch = now;
+        _updateNearestBar(pos);
+      }
+    });
   }
 
   Future<void> _updateNearestBar(Position pos) async {
@@ -108,18 +116,18 @@ class _DrunkenSailorAppState extends State<DrunkenSailorApp> with SingleTickerPr
       final open = nearby.where((b) => b.isOpenAt(now)).toList();
       setState(() {
         if (open.isNotEmpty) {
-          _nearestBarDistanceKm = open.first.distanceTo(pos.latitude, pos.longitude);
+          _nearestBarDistanceM = open.first.distanceTo(pos.latitude, pos.longitude);
         } else if (nearby.isNotEmpty) {
-          _nearestBarDistanceKm = -nearby.first.distanceTo(pos.latitude, pos.longitude);
+          _nearestBarDistanceM = -nearby.first.distanceTo(pos.latitude, pos.longitude);
         }
       });
     } catch (_) {}
   }
 
-  String _formatDistance(double km) {
-    final meters = (km.abs() * 1000).round();
-    final abs = meters < 1000 ? '${meters}m' : '${(km.abs()).toStringAsFixed(1)}km';
-    return km < 0 ? '-$abs' : abs;
+  String _formatDistance(int meters) {
+    final abs = meters.abs();
+    final label = abs < 1000 ? '${abs}m' : '${(abs / 1000).toStringAsFixed(1)}km';
+    return meters < 0 ? '-$label' : label;
   }
 
   String _themeForView(ViewMode view) {
@@ -239,21 +247,21 @@ class _DrunkenSailorAppState extends State<DrunkenSailorApp> with SingleTickerPr
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  _nearestBarDistanceKm == null
+                  _nearestBarDistanceM == null
                       ? 'Locating...'
-                      : _nearestBarDistanceKm! >= 0
+                      : _nearestBarDistanceM! >= 0
                           ? 'Destination in'
                           : 'All closed, nearest',
                   style: const TextStyle(fontSize: 14, color: Color(0xFF94a3b8)),
                 ),
-                if (_nearestBarDistanceKm != null) ...[
+                if (_nearestBarDistanceM != null) ...[
                   const SizedBox(width: 16),
                   Text(
-                    _formatDistance(_nearestBarDistanceKm!),
+                    _formatDistance(_nearestBarDistanceM!),
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: _nearestBarDistanceKm! >= 0
+                      color: _nearestBarDistanceM! >= 0
                           ? const Color(0xFF10b981)
                           : const Color(0xFFef4444),
                     ),

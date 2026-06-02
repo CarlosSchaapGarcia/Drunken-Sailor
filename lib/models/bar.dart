@@ -28,7 +28,7 @@ class Bar {
       gayFriendly: json['gay_friendly'] ?? false,
       hours: Map<String, OpeningHours>.from(
         (json['hours'] as Map? ?? {}).map(
-          (k, v) => MapEntry(k, OpeningHours.fromJson(v)),
+          (k, v) => MapEntry((k as String).toLowerCase(), OpeningHours.fromJson(v)),
         ),
       ),
       isBlacklisted: json['isBlacklisted'] ?? false,
@@ -47,32 +47,45 @@ class Bar {
     };
   }
 
-  double distanceTo(double userLat, double userLon) {
-    const earthRadiusKm = 6371;
+  int distanceTo(double userLat, double userLon) {
+    const earthRadiusM = 6371000;
     final dLat = _toRad(userLat - latitude);
     final dLon = _toRad(userLon - longitude);
     final a = (sin(dLat / 2) * sin(dLat / 2)) +
         (cos(_toRad(latitude)) * cos(_toRad(userLat)) * sin(dLon / 2) * sin(dLon / 2));
     final c = 2 * atan2(sqrt(a), sqrt(1 - a));
-    return (earthRadiusKm * c).toDouble();
+    return (earthRadiusM * c).round();
   }
 
   double _toRad(double degree) => degree * (3.141592653589793 / 180);
 
   bool isOpenAt(DateTime time) {
-    final dayName = _getDayName(time.weekday);
-    final hoursForDay = hours[dayName];
-    if (hoursForDay == null) return false;
+    final currentMinutes = time.hour * 60 + time.minute;
 
-    final currentTime = time.hour * 60 + time.minute;
-    final openTime = hoursForDay.opens;
-    final closeTime = hoursForDay.closes;
+    // Check today's hours
+    final todayHours = hours[_getDayName(time.weekday)];
+    if (todayHours != null) {
+      if (todayHours.closes > todayHours.opens) {
+        // Normal: e.g. 10:00–23:00
+        if (currentMinutes >= todayHours.opens && currentMinutes < todayHours.closes) return true;
+      } else {
+        // Crosses midnight: open part starting today (e.g. 22:00 onward)
+        if (currentMinutes >= todayHours.opens) return true;
+      }
+    }
 
-    return currentTime >= openTime && currentTime < closeTime;
+    // Check yesterday's hours for the past-midnight portion (e.g. still open at 02:00)
+    final yesterday = time.subtract(const Duration(days: 1));
+    final yesterdayHours = hours[_getDayName(yesterday.weekday)];
+    if (yesterdayHours != null && yesterdayHours.closes <= yesterdayHours.opens) {
+      if (currentMinutes < yesterdayHours.closes) return true;
+    }
+
+    return false;
   }
 
   String _getDayName(int weekday) {
-    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
     return days[weekday - 1];
   }
 }
