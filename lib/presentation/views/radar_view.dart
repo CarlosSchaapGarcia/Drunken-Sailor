@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:math' as math;
+import '../../domain/models/bar.dart';
+import '../providers/providers.dart';
 
-class RadarView extends StatefulWidget {
+class RadarView extends ConsumerStatefulWidget {
   const RadarView({Key? key}) : super(key: key);
 
   @override
-  State<RadarView> createState() => _RadarViewState();
+  ConsumerState<RadarView> createState() => _RadarViewState();
 }
 
-class _RadarViewState extends State<RadarView> with SingleTickerProviderStateMixin {
+class _RadarViewState extends ConsumerState<RadarView> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
 
   @override
@@ -28,6 +31,11 @@ class _RadarViewState extends State<RadarView> with SingleTickerProviderStateMix
 
   @override
   Widget build(BuildContext context) {
+    final openBarPositions = ref.watch(openBarPositionsProvider).maybeWhen<List<BarRelativePosition>>(
+          data: (bars) => bars,
+          orElse: () => const [],
+        );
+
     return SingleChildScrollView(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -38,7 +46,10 @@ class _RadarViewState extends State<RadarView> with SingleTickerProviderStateMix
             animation: _controller,
             builder: (context, child) {
               return CustomPaint(
-                painter: RadarPainter(sweepAngle: _controller.value * 360),
+                painter: RadarPainter(
+                  sweepAngle: _controller.value * 360,
+                  targets: openBarPositions,
+                ),
               );
             },
           ),
@@ -50,8 +61,9 @@ class _RadarViewState extends State<RadarView> with SingleTickerProviderStateMix
 
 class RadarPainter extends CustomPainter {
   final double sweepAngle;
+  final List<BarRelativePosition> targets;
 
-  RadarPainter({required this.sweepAngle});
+  RadarPainter({required this.sweepAngle, this.targets = const []});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -150,6 +162,11 @@ class RadarPainter extends CustomPainter {
         ..style = PaintingStyle.stroke,
     );
 
+    // Open bars on radar
+    for (final target in targets) {
+      _drawTarget(canvas, center, radius, target);
+    }
+
     // Submarine Periscope Icon
     _drawText(canvas, '🔭', center.translate(radius - 25, -radius + 20), 20);
 
@@ -208,6 +225,34 @@ class RadarPainter extends CustomPainter {
       ).createShader(Rect.fromCircle(center: center, radius: radius));
 
     canvas.drawCircle(center, radius, paint);
+  }
+
+  void _drawTarget(Canvas canvas, Offset center, double radius, BarRelativePosition target) {
+    final distance = radius * target.distanceRatio;
+    final radians = (target.angleDegrees - 90) * math.pi / 180;
+    final targetOffset = Offset(
+      center.dx + distance * math.cos(radians),
+      center.dy + distance * math.sin(radians),
+    );
+
+    canvas.drawCircle(
+      targetOffset,
+      6,
+      Paint()
+        ..color = const Color(0xFF10b981)
+        ..style = PaintingStyle.fill,
+    );
+
+    canvas.drawCircle(
+      targetOffset,
+      10,
+      Paint()
+        ..color = const Color(0xFF10b981).withOpacity(0.15)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1,
+    );
+
+    _drawText(canvas, target.bar.name, targetOffset.translate(0, -14), 10);
   }
 
   void _drawScanlines(Canvas canvas, Size size) {

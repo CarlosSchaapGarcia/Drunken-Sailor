@@ -57,6 +57,18 @@ class Bar {
     return (earthRadiusM * 2 * atan2(sqrt(a), sqrt(1 - a))).round();
   }
 
+  double bearingTo(double userLat, double userLon) {
+    final lat1 = _toRad(userLat);
+    final lat2 = _toRad(latitude);
+    final dLon = _toRad(longitude - userLon);
+
+    final y = sin(dLon) * cos(lat2);
+    final x = cos(lat1) * sin(lat2) -
+        sin(lat1) * cos(lat2) * cos(dLon);
+
+    return (atan2(y, x) * 180 / pi + 360) % 360;
+  }
+
   bool isOpenAt(DateTime time) {
     final currentMinutes = time.hour * 60 + time.minute;
 
@@ -90,4 +102,41 @@ class Bar {
 
   @override
   int get hashCode => id.hashCode;
+}
+
+class BarRelativePosition {
+  final Bar bar;
+  final double angleDegrees;
+  final double distanceMeters;
+  final double distanceRatio;
+  final bool visible;
+
+  BarRelativePosition({
+    required this.bar,
+    required this.angleDegrees,
+    required this.distanceMeters,
+    required this.distanceRatio,
+    required this.visible,
+  });
+
+  factory BarRelativePosition.fromBar(
+    Bar bar,
+    double userLat,
+    double userLon,
+    double headingDegrees, {
+    double maxRangeMeters = 2000,
+  }) {
+    final distanceMeters = bar.distanceTo(userLat, userLon);
+    final bearing = bar.bearingTo(userLat, userLon);
+    final relativeAngle = (bearing - headingDegrees + 360) % 360;
+    final ratio = (distanceMeters / maxRangeMeters).clamp(0.0, 1.0);
+
+    return BarRelativePosition(
+      bar: bar,
+      angleDegrees: relativeAngle,
+      distanceMeters: distanceMeters.toDouble(),
+      distanceRatio: ratio,
+      visible: distanceMeters <= maxRangeMeters,
+    );
+  }
 }

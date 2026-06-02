@@ -8,6 +8,7 @@ abstract class BarRepository {
     double lng, {
     bool gayFriendlyOnly = false,
     double radiusKm = 5.0,
+    int? limit = 5,
   });
 
   Future<Bar?> findClosestOpenBar(

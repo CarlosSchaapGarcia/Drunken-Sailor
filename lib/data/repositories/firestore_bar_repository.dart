@@ -50,6 +50,7 @@ class FirestoreBarRepository implements BarRepository {
     double lng, {
     bool gayFriendlyOnly = false,
     double radiusKm = 5.0,
+    int? limit = 5,
   }) async {
     final precision = precisionForRadius(radiusKm);
     final center = encodeGeohash(lat, lng, precision);
@@ -76,11 +77,11 @@ class FirestoreBarRepository implements BarRepository {
       final all = await getAllBars();
       final nearby = all.where((b) => b.distanceTo(lat, lng) <= radiusM).toList();
       nearby.sort((a, b) => a.distanceTo(lat, lng).compareTo(b.distanceTo(lat, lng)));
-      return nearby.take(5).toList();
+      return limit != null ? nearby.take(limit).toList() : nearby;
     }
 
     bars.sort((a, b) => a.distanceTo(lat, lng).compareTo(b.distanceTo(lat, lng)));
-    return bars.take(5).toList();
+    return limit != null ? bars.take(limit).toList() : bars;
   }
 
   @override

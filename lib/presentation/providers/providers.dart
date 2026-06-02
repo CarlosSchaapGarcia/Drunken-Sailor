@@ -47,3 +47,31 @@ final nearestBarProvider = FutureProvider.autoDispose<int?>((ref) async {
   if (open.isNotEmpty) return open.first.distanceTo(pos.latitude, pos.longitude);
   return -nearby.first.distanceTo(pos.latitude, pos.longitude);
 });
+
+final openBarPositionsProvider = StreamProvider.autoDispose<List<BarRelativePosition>>((ref) {
+  final locationStream = ref.watch(locationStreamProvider.stream);
+
+  return locationStream.asyncMap((pos) async {
+    final repo = ref.read(barRepositoryProvider);
+    final nearby = await repo.findNearbyBars(
+      pos.latitude,
+      pos.longitude,
+      radiusKm: 2.0,
+      limit: null,
+    );
+
+    final now = DateTime.now();
+    final heading = pos.heading.isFinite ? pos.heading : 0.0;
+
+    return nearby
+        .where((bar) => bar.isOpenAt(now))
+        .map((bar) => BarRelativePosition.fromBar(
+              bar,
+              pos.latitude,
+              pos.longitude,
+              heading,
+            ))
+        .where((position) => position.visible)
+        .toList();
+  });
+});

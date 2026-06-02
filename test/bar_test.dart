@@ -2,11 +2,16 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:drunken_sailor/domain/models/bar.dart';
 import 'package:drunken_sailor/domain/models/opening_hours.dart';
 
-Bar _bar({Map<String, OpeningHours> hours = const {}}) => Bar(
+Bar _bar({
+  Map<String, OpeningHours> hours = const {},
+  double latitude = 52.7897,
+  double longitude = 6.8942,
+}) =>
+    Bar(
       id: 'test',
       name: 'Test Bar',
-      latitude: 52.7897,
-      longitude: 6.8942,
+      latitude: latitude,
+      longitude: longitude,
       hours: hours,
     );
 
@@ -109,6 +114,25 @@ void main() {
       expect(restored.hours['monday']?.opens, equals(960));
       expect(restored.hours['monday']?.closes, equals(1380));
       expect(restored.hours['friday']?.closes, equals(180));
+    });
+  });
+
+  group('relative position calculation', () {
+    test('bearing due east is around 90 degrees', () {
+      final bar = _bar(longitude: 6.9042);
+      final pos = BarRelativePosition.fromBar(bar, 52.7897, 6.8942, 0);
+
+      expect(pos.angleDegrees, closeTo(90, 5));
+      expect(pos.visible, isTrue);
+      expect(pos.distanceRatio, closeTo(0.5, 0.2));
+    });
+
+    test('bars beyond 2km are hidden', () {
+      final bar = _bar(longitude: 6.9242);
+      final pos = BarRelativePosition.fromBar(bar, 52.7897, 6.8942, 0);
+
+      expect(pos.visible, isFalse);
+      expect(pos.distanceRatio, equals(1.0));
     });
   });
 }
