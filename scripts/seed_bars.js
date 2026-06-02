@@ -1,3 +1,4 @@
+// Run with: npm ci && node seed_bars.js
 const admin = require('firebase-admin');
 const ngeohash = require('ngeohash');
 const serviceAccount = require('./serviceAccountKey.json');
