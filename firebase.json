@@ -1,32 +1,6 @@
 {
-  "flutter": {
-    "platforms": {
-      "android": {
-        "default": {
-          "projectId": "drunken-sailor-f6905",
-          "appId": "1:298112734306:android:010f980c2ab8faf7cd2d3b",
-          "fileOutput": "android/app/google-services.json"
-        }
-      },
-      "dart": {
-        "lib/firebase_options.dart": {
-          "projectId": "drunken-sailor-f6905",
-          "configurations": {
-            "android": "1:298112734306:android:010f980c2ab8faf7cd2d3b",
-            "ios": "1:298112734306:ios:1b51df1abe263848cd2d3b",
-            "macos": "1:298112734306:ios:1b51df1abe263848cd2d3b",
-            "windows": "1:298112734306:web:b1ca3df387b97636cd2d3b"
-          }
-        }
-      }
-    }
-  },
-  "emulators": {
-    "dataconnect": {
-      "dataDir": "dataconnect/.dataconnect/pgliteData"
-    }
-  },
-  "dataconnect": {
-    "source": "dataconnect"
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
   }
 }

@@ -1,194 +1,233 @@
-# Drunken Sailor - Flutter App
+# Drunken Sailor
 
-This is the Flutter/Dart implementation of the Drunken Sailor bar finder app. The app helps you find the nearest open bar with three interactive interfaces: Pirate Compass, Submarine Radar, and Nuclear Geiger Counter.
+Flutter app that points you to the nearest open bar. Three themed interfaces: Pirate Compass, Submarine Radar, Nuclear Geiger Counter.
 
-## Project Structure
+## Dependencies
+
+Install these on your machine before anything else:
+
+| Tool | Purpose | Install |
+|------|---------|---------|
+| [Docker Desktop](https://www.docker.com/products/docker-desktop/) | Builds the APK | Required |
+| [ADB (Android SDK Platform Tools)](https://developer.android.com/tools/releases/platform-tools) | Installs APK on phone | Required |
+| [Firebase CLI](https://firebase.google.com/docs/cli) | Deploy Firestore rules/indexes | `npm install -g firebase-tools` |
+| [Node.js](https://nodejs.org/) | Run the seed script | Required for seeding |
+
+Docker Desktop: set **Settings → Resources → CPU** to at least 6, **Memory** to 8 GB.
+
+---
+
+## First-time setup
+
+### 1. Clone and enter the repo
+
+```powershell
+git clone <repo-url>
+cd Drunken-Sailor
+```
+
+### 2. Firebase config
+
+`lib/firebase_options.dart` and `android/app/google-services.json` are committed — no action needed. The app is pre-configured for the `drunken-sailor-e61a6` Firebase project.
+
+### 3. Build the Docker image (once)
+
+```powershell
+docker build -t drunken-sailor-builder .
+```
+
+This takes 10–15 minutes the first time. Only needed again if `Dockerfile` changes.
+
+---
+
+## Building and running on your phone
+
+### Build the APK
+
+```powershell
+docker run --rm `
+  -v "${PWD}:/app" `
+  -v "drunken-sailor-gradle:/root/.gradle" `
+  -v "drunken-sailor-pub:/root/.pub-cache" `
+  -w /app `
+  drunken-sailor-builder `
+  sh -c "rm -rf .dart_tool && flutter pub get && flutter build apk --release"
+```
+
+First run: ~10 minutes (downloads Flutter artifacts and Gradle dependencies into named volumes).
+Subsequent runs: ~2–4 minutes (volumes are cached).
+
+### Install on phone
+
+1. Enable **USB debugging** on your phone (Developer Options)
+2. Plug in via USB
+3. Verify ADB sees it:
+   ```powershell
+   adb devices
+   ```
+4. Install:
+   ```powershell
+   adb install -r build\app\outputs\flutter-apk\app-release.apk
+   ```
+
+If you get `INSTALL_FAILED_UPDATE_INCOMPATIBLE` (signature mismatch from a previous install):
+```powershell
+adb uninstall com.example.drunken_sailor
+adb install build\app\outputs\flutter-apk\app-release.apk
+```
+
+### Rebuilding after code changes
+
+Just re-run the build command above. The named volumes keep Gradle and pub caches warm so it stays fast.
+
+### Checking Firebase connectivity
+
+```powershell
+adb logcat -s flutter
+```
+
+Open the app — you should see:
+```
+[Firebase] Connected — 10 bars loaded
+```
+
+---
+
+## Firestore setup
+
+### Deploy rules and indexes
+
+```powershell
+firebase login
+firebase deploy --only firestore --project drunken-sailor-e61a6
+```
+
+This deploys `firestore.rules` (read-only public access) and `firestore.indexes.json` (composite index for gay-friendly + geohash queries).
+
+### Seeding bar data
+
+The seed script lives in `scripts/`. It deletes all existing bars and re-inserts from `scripts/emmen_bars.js`.
+
+**Prerequisites:**
+- Get `scripts/serviceAccountKey.json` from a teammate (never committed — see `.gitignore`)
+- `package-lock.json` is committed so you get the exact same dependency versions as everyone else
+
+**Run:**
+
+```powershell
+docker run --rm `
+  -v "${PWD}/scripts:/scripts" `
+  -w /scripts `
+  node:18-alpine `
+  sh -c "npm ci && node seed_bars.js"
+```
+
+(`npm ci` uses `package-lock.json` for reproducible installs — faster and more reliable than `npm install`)
+
+**Adding or editing bars:** edit `scripts/emmen_bars.js`, then re-run the seed command above. Hours use `"HH:MM"` strings. Set `hours: null` for temporarily closed venues. Verify coordinates in Google Maps before committing.
+
+---
+
+## Project structure
 
 ```
-flutter_app/
 ├── lib/
-│   ├── main.dart                 # App entry point
-│   ├── app.dart                  # Main app logic and navigation
+│   ├── main.dart                      # App entry point, Firebase init
+│   ├── app.dart                       # Root widget, navigation, distance indicator
 │   ├── models/
-│   │   ├── bar.dart             # Bar data model
-│   │   └── firebase_service.dart # Firebase database service
-│   └── views/
-│       ├── compass_view.dart    # Pirate compass interface
-│       ├── geiger_view.dart     # Nuclear counter interface
-│       └── radar_view.dart      # Submarine radar interface
-├── pubspec.yaml                  # Flutter dependencies
-└── README.md                      # This file
+│   │   ├── bar.dart                   # Bar data model + distance/hours logic
+│   │   └── firebase_service.dart      # Firestore geo queries
+│   ├── services/
+│   │   └── location_service.dart      # GPS polling (foreground only)
+│   ├── utils/
+│   │   └── geohash_util.dart          # Geohash encode + neighbor computation
+│   ├── views/
+│   │   ├── compass_view.dart          # Pirate compass
+│   │   ├── radar_view.dart            # Submarine radar
+│   │   └── geiger_view.dart           # Nuclear counter
+│   └── widgets/
+│       ├── location_permission_dialog.dart  # Themed permission denied dialog
+│       └── location_debug_overlay.dart      # GPS debug overlay
+├── android/
+│   └── app/
+│       └── google-services.json       # Firebase Android config (committed)
+├── scripts/
+│   ├── emmen_bars.js                  # Bar data source — edit this to add bars
+│   ├── seed_bars.js                   # Seed runner
+│   ├── package-lock.json              # Committed — pins Node dependency versions
+│   └── serviceAccountKey.json        # NOT committed — get from a teammate
+├── firestore.rules                    # Firestore security rules
+├── firestore.indexes.json             # Composite indexes definition
+├── firebase.json                      # Firebase CLI project config
+└── Dockerfile                         # Build environment
 ```
 
-## Features
+---
 
-### MUST HAVE ✅
-- [x] Find closest open bar
-- [x] **Compass View** - Pirate themed compass pointing to nearest bar
-- [x] **Geiger Counter** - Nuclear themed radiation detector showing proximity
-- [x] **Sonar/Radar** - Submarine themed radar scanning for bars
-- [x] Firebase Realtime Database integration
-- [x] Flutter and Dart implementation
+## Database schema
 
-### NICE TO HAVE 📋
-- [ ] Map view
-- [ ] Bar blacklist functionality
-- [ ] Error handling with sea shanties
-- [ ] Gay bars filter button
-- [ ] Vibration feedback on arrival
+Each document in the `bars` Firestore collection:
 
-## Setup Instructions
-
-### Prerequisites
-- Flutter SDK (3.0+)
-- Firebase project set up
-- Dart 3.0+
-
-### Installation
-
-1. **Navigate to the Flutter app directory:**
-   ```bash
-   cd flutter_app
-   ```
-
-2. **Install dependencies:**
-   ```bash
-   flutter pub get
-   ```
-
-3. **Set up Firebase:**
-   - Follow the [Firebase setup guide](https://firebase.flutter.dev/docs/overview/) for your platform
-   - Download your `google-services.json` (Android) or `GoogleService-Info.plist` (iOS)
-   - Place in the appropriate platform-specific directory
-
-4. **Create Firebase Realtime Database Structure:**
-   
-   Your Firebase database should have this structure:
-   ```
-   bars/
-   ├── bar_001/
-   │   ├── id: "bar_001"
-   │   ├── name: "The Pirate Ship"
-   │   ├── latitude: 52.6857
-   │   ├── longitude: 7.2633
-   │   ├── category: "regular"
-   │   ├── isBlacklisted: false
-   │   └── hours/
-   │       ├── Monday: {opens: 840, closes: 180}      # 14:00 - 03:00
-   │       ├── Tuesday: {opens: 840, closes: 180}
-   │       └── ...
-   ├── bar_002/
-   │   └── ...
-   └── ...
-   ```
-   
-   Times are in minutes since midnight (e.g., 840 = 14:00, 1260 = 21:00)
-
-5. **Run the app:**
-   ```bash
-   flutter run
-   ```
-
-## View Navigation
-
-Users can navigate between the three views by:
-- **Swiping left/right** on the screen
-- **Tapping navigation dots** at the bottom
-- **Using the side menu** to jump directly to a view
-
-## Debug Features
-
-**GPS debug overlay** — hold the hamburger menu icon (top-left) for **5 seconds**. A small overlay appears in the bottom-right corner showing live lat/lng/accuracy. Hold again to dismiss it.
-
-## Database Schema
-
-### Bar Model
-```dart
+```json
 {
-  "id": "bar_001",
-  "name": "Bar Name",
-  "latitude": 52.6857,
-  "longitude": 7.2633,
-  "category": "regular" | "gay" | null,
-  "isBlacklisted": false,
+  "name": "Café De Beurs",
+  "latitude": 52.7897,
+  "longitude": 6.8942,
+  "geohash": "u1hke2vyk",
+  "location": "<GeoPoint>",
+  "gay_friendly": false,
   "hours": {
-    "Monday": {"opens": 840, "closes": 180},
-    "Tuesday": {"opens": 840, "closes": 180},
-    // ... etc
+    "monday":    { "opens": 960, "closes": 120 },
+    "friday":    { "opens": 960, "closes": 180 },
+    "saturday":  { "opens": 840, "closes": 180 }
   }
 }
 ```
 
-## Usage
+Hours are minutes since midnight (e.g. `960` = 16:00, `180` = 03:00). Days not present in `hours` are treated as closed.
 
-### Compass View
-- Shows the bearing to the nearest open bar
-- Red needle points to the destination
-- Pirate themed decorations (skull, anchor)
+---
 
-### Geiger Counter
-- Displays proximity as radiation levels
-- Colors change based on distance:
-  - Green (Safe) - Far away
-  - Yellow (Elevated) - Getting closer
-  - Red (Danger) - Very close
-- Clicking sound effect speeds up as you get closer
+## Debug features
 
-### Radar View
-- Submarine themed sonar display
-- Sweep line rotates continuously
-- Target blips show bar locations
-- Periscope and wave decorations
+**GPS overlay** — hold the hamburger menu (top-left) for 5 seconds. Shows live lat/lng/accuracy in the bottom-right corner. Hold again to dismiss.
 
-## Vibration & Sound
+---
 
-When the user reaches their destination (within 50m), the app will:
-- Trigger vibration feedback
-- Optional: Play a sea shanty (if audio module is added)
+## Features
 
-## Future Enhancements
+### Done
+- Pirate Compass, Submarine Radar, Nuclear Geiger Counter views
+- Live GPS with foreground location service (updates every 5s, ≤20m accuracy)
+- Distance indicator: green when a bar is open, red with negative distance when all are closed
+- Firestore geo queries via geohash tiling (9-tile search, 5km radius)
+- Gay-friendly filter field on all bar documents
+- Themed location permission denied dialog (pirate/submarine/nuclear copy)
+- Composite Firestore index for gay-friendly + geohash queries
 
-1. **Location Services** - Integrate GPS for real location tracking
-2. **Map View** - Show bars on an interactive map
-3. **Blacklist Management** - Persistent user blacklist
-4. **Gay Bar Filter** - Dedicated button to filter for gay-friendly venues
-5. **Sea Shanties** - Error messages with pirate themed audio
-6. **Push Notifications** - Alert when nearby bar opens
+### Planned
+- Map view
+- Bar blacklist
+- Gay bars filter button
+- Sea shanty error messages
+- Vibration on arrival
 
-## Architecture
-
-The app uses:
-- **Provider** for state management
-- **Firebase Realtime Database** for bar data
-- **Geolocator** for user location
-- **Custom Paint** for complex UI visualizations
-- **PageView** for smooth view transitions
+---
 
 ## Troubleshooting
 
-### Firebase Connection Issues
-- Ensure your `google-services.json` or `GoogleService-Info.plist` is properly placed
-- Check Firebase project settings and rules
-- Verify internet connectivity
+**Build fails with `Matrix4 isn't a type`** — stale `.dart_tool` from Windows. The build command already runs `rm -rf .dart_tool` to prevent this.
 
-### View Rendering Issues
-- Clear build cache: `flutter clean`
-- Rebuild: `flutter pub get && flutter run`
+**Build fails with Gradle error** — clear the named volumes and retry:
+```powershell
+docker volume rm drunken-sailor-pub drunken-sailor-gradle
+```
 
-### Location Permission
-- Ensure app has location permissions enabled in device settings
+**`INSTALL_FAILED_UPDATE_INCOMPATIBLE`** — uninstall the old APK first:
+```powershell
+adb uninstall com.example.drunken_sailor
+```
 
-## Performance Notes
+**Distance shows "Locating..."** — GPS hasn't got a fix yet, or location permission was denied. Check the GPS debug overlay.
 
-- Custom Paint widgets are optimized for smooth 60 FPS animations
-- Firebase queries are cached where possible
-- Compass needle updates at 30ms intervals
-- Radar sweep rotates at 60 FPS
-
-## Firebase project 
-
-- Project ID: drunken-sailor-f6905
-
-## License
-
-All code converted from Figma AI export. See ATTRIBUTIONS.md for original design credits.
+**Distance shows 0 bars / Firebase not loading** — the seed hasn't been run yet, or the `geohash` field is missing from bar documents. Re-run the seed.

@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "298112734306",
-    "project_id": "drunken-sailor-f6905",
-    "storage_bucket": "drunken-sailor-f6905.firebasestorage.app"
+    "project_number": "986771803771",
+    "project_id": "drunken-sailor-e61a6",
+    "storage_bucket": "drunken-sailor-e61a6.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:298112734306:android:010f980c2ab8faf7cd2d3b",
+        "mobilesdk_app_id": "1:986771803771:android:8557b391a1c5f024795cde",
         "android_client_info": {
           "package_name": "com.example.drunken_sailor"
         }
@@ -15,26 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyCmhxh6hvd6l8khoA8SVHeakeFU96FTEs4"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:298112734306:android:2e594724a2b96efccd2d3b",
-        "android_client_info": {
-          "package_name": "com.nhlstenden.barnavigator"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyCmhxh6hvd6l8khoA8SVHeakeFU96FTEs4"
+          "current_key": "AIzaSyBa6Q51c6V-fe19-eUETlFKrMFQ9wi8S3U"
         }
       ],
       "services": {
