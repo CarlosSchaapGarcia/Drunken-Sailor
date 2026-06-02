@@ -17,7 +17,7 @@ dependencies:
   geolocator: ^9.0.2
   
   # State Management
-  provider: ^6.0.0
+  flutter_riverpod: ^2.4.0
   
   # Database
   firebase_core: ^2.20.0
