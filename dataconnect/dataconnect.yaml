@@ -1,0 +1,13 @@
+specVersion: "v1"
+serviceId: "drunken-sailor-f6905-service"
+location: "europe-west4"
+schemas:
+  - source: "./schema"
+    datasource:
+      postgresql:
+        database: "drunken-sailor-database"
+        cloudSql:
+          instanceId: "drunken-sailor-f6905-instance"
+          # schemaValidation: "STRICT"     # STRICT mode makes Postgres schema match Data Connect exactly.
+          # schemaValidation: "COMPATIBLE" # COMPATIBLE mode makes Postgres schema compatible with Data Connect.
+connectorDirs: ["./example"]

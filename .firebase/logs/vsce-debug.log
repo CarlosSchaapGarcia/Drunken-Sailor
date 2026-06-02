@@ -1,0 +1,270 @@
+[debug] [2026-05-21T13:29:26.884Z] [Firebase Plugin] Activating Firebase extension.
+[info] [Firebase Plugin] Checked firebase-tools, is up to date!
+[debug] [2026-05-21T13:29:28.681Z] [Firebase Plugin] requireAuthWrapper
+[debug] [2026-05-21T13:29:28.682Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-05-21T13:29:28.682Z] > authorizing via signed-in user (antonreunov@gmail.com)
+[debug] [2026-05-21T13:29:28.685Z] Checked if tokens are valid: true, expires at: 1779371133366
+[debug] [2026-05-21T13:29:28.686Z] Checked if tokens are valid: true, expires at: 1779371133366
+[debug] [2026-05-21T13:29:28.686Z] [Firebase Plugin] User found:  antonreunov@gmail.com
+[info] [Firebase Plugin] (Core:Project) New user detected, fetching projects
+[debug] [2026-05-21T13:29:28.687Z] Checked if tokens are valid: true, expires at: 1779371133366
+[debug] [2026-05-21T13:29:28.688Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects pageSize=1000
+[debug] [2026-05-21T13:29:28.696Z] [Firebase Plugin] VSCode notification server listening on port 40001
+[debug] [2026-05-21T13:29:28.937Z] Object "" in "firebase.json" has unknown property: {"additionalProperty":"flutter"}
+[info] [Firebase Plugin] Starting SQL Connect toolkit (version 3.4.8) on port 50001
+[info] i  dataconnect: downloading dataconnect-emulator-3.4.8.exe... {"metadata":{"emulator":{"name":"dataconnect"},"message":"downloading dataconnect-emulator-3.4.8.exe..."}}
+[debug] [2026-05-21T13:29:28.944Z] >>> [apiv2][query] GET https://storage.googleapis.com/firemat-preview-drop/emulator/dataconnect-emulator-windows-amd64-v3.4.8 
+[debug] [2026-05-21T13:29:29.179Z] <<< [apiv2][status] GET https://storage.googleapis.com/firemat-preview-drop/emulator/dataconnect-emulator-windows-amd64-v3.4.8 200
+[debug] [2026-05-21T13:29:29.180Z] <<< [apiv2][body] GET https://storage.googleapis.com/firemat-preview-drop/emulator/dataconnect-emulator-windows-amd64-v3.4.8 [stream]
+[debug] [2026-05-21T13:29:29.652Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects 200
+[debug] [2026-05-21T13:29:29.652Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects [omitted]
+[debug] [2026-05-21T13:29:32.473Z] 'fdc build' failed with error: Unable to build your SQL Connect schema and connectors (exit code 1): E0521 15:29:32.467453   16884 cmd.go:43] Error loading data connect config: could not find dataconnect.yaml in `c:\Users\Anton Reunov\Programming\Drunken-Sailor\dataconnect`
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"'fdc build' failed with error: Unable to build your SQL Connect schema and connectors (exit code 1): E0521 15:29:32.467453   16884 cmd.go:43] Error loading data connect config: could not find dataconnect.yaml in `c:\\Users\\Anton Reunov\\Programming\\Drunken-Sailor\\dataconnect`\n"}}
+[debug] [2026-05-21T13:29:32.474Z] Ignoring unsupported arg: auto_download {"metadata":{"emulator":{"name":"dataconnect"},"message":"Ignoring unsupported arg: auto_download"}}
+[debug] [2026-05-21T13:29:32.474Z] Ignoring unsupported arg: port {"metadata":{"emulator":{"name":"dataconnect"},"message":"Ignoring unsupported arg: port"}}
+[debug] [2026-05-21T13:29:32.474Z] Starting SQL Connect Emulator with command {"binary":"C:\\Users\\Anton Reunov\\.cache\\firebase\\emulators\\dataconnect-emulator-3.4.8.exe","args":["--logtostderr","-v=2","dev","--listen=localhost:50001","--config_dir=c:\\Users\\Anton Reunov\\Programming\\Drunken-Sailor\\dataconnect","--enable_output_schema_extensions=true","--enable_output_generated_sdk=true"],"optionalArgs":["listen","config_dir","enable_output_schema_extensions","enable_output_generated_sdk"],"joinArgs":true,"shell":false,"port":9399} {"metadata":{"emulator":{"name":"dataconnect"},"message":"Starting SQL Connect Emulator with command {\"binary\":\"C:\\\\Users\\\\Anton Reunov\\\\.cache\\\\firebase\\\\emulators\\\\dataconnect-emulator-3.4.8.exe\",\"args\":[\"--logtostderr\",\"-v=2\",\"dev\",\"--listen=localhost:50001\",\"--config_dir=c:\\\\Users\\\\Anton Reunov\\\\Programming\\\\Drunken-Sailor\\\\dataconnect\",\"--enable_output_schema_extensions=true\",\"--enable_output_generated_sdk=true\"],\"optionalArgs\":[\"listen\",\"config_dir\",\"enable_output_schema_extensions\",\"enable_output_generated_sdk\"],\"joinArgs\":true,\"shell\":false,\"port\":9399}"}}
+[info] i  dataconnect: SQL Connect Emulator logging to dataconnect-debug.log {"metadata":{"emulator":{"name":"dataconnect"},"message":"SQL Connect Emulator logging to \u001b[1mdataconnect-debug.log\u001b[22m"}}
+[debug] [2026-05-21T13:29:32.526Z] E0521 15:29:32.525864   16696 dev.go:83] Failed to load initial config from "c:\\Users\\Anton Reunov\\Programming\\Drunken-Sailor\\dataconnect": could not find dataconnect.yaml in `c:\Users\Anton Reunov\Programming\Drunken-Sailor\dataconnect`
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"E0521 15:29:32.525864   16696 dev.go:83] Failed to load initial config from \"c:\\\\Users\\\\Anton Reunov\\\\Programming\\\\Drunken-Sailor\\\\dataconnect\": could not find dataconnect.yaml in `c:\\Users\\Anton Reunov\\Programming\\Drunken-Sailor\\dataconnect`\n"}}
+[debug] [2026-05-21T13:29:32.526Z] E0521 15:29:32.525864   16696 watch.go:116] watchAllDir unable to walk dir `c:\Users\Anton Reunov\Programming\Drunken-Sailor\dataconnect`: GetFileAttributesEx c:\Users\Anton Reunov\Programming\Drunken-Sailor\dataconnect: The system cannot find the file specified.
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"E0521 15:29:32.525864   16696 watch.go:116] watchAllDir unable to walk dir `c:\\Users\\Anton Reunov\\Programming\\Drunken-Sailor\\dataconnect`: GetFileAttributesEx c:\\Users\\Anton Reunov\\Programming\\Drunken-Sailor\\dataconnect: The system cannot find the file specified.\n"}}
+[debug] [2026-05-21T13:29:32.536Z] I0521 15:29:32.536591   16696 dev.go:104] Listening on address (HTTP + gRPC): 127.0.0.1:50001
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0521 15:29:32.536591   16696 dev.go:104] Listening on address (HTTP + gRPC): 127.0.0.1:50001\n"}}
+[error] [Firebase Plugin] error:  {}
+[debug] [2026-05-21T13:29:42.527Z] E0521 15:29:42.526786   16696 watch.go:40] Failed to load config from "c:\\Users\\Anton Reunov\\Programming\\Drunken-Sailor\\dataconnect": could not find dataconnect.yaml in `c:\Users\Anton Reunov\Programming\Drunken-Sailor\dataconnect`
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"E0521 15:29:42.526786   16696 watch.go:40] Failed to load config from \"c:\\\\Users\\\\Anton Reunov\\\\Programming\\\\Drunken-Sailor\\\\dataconnect\": could not find dataconnect.yaml in `c:\\Users\\Anton Reunov\\Programming\\Drunken-Sailor\\dataconnect`\n"}}
+[debug] [2026-05-21T13:29:52.527Z] E0521 15:29:52.527066   16696 watch.go:40] Failed to load config from "c:\\Users\\Anton Reunov\\Programming\\Drunken-Sailor\\dataconnect": could not find dataconnect.yaml in `c:\Users\Anton Reunov\Programming\Drunken-Sailor\dataconnect`
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"E0521 15:29:52.527066   16696 watch.go:40] Failed to load config from \"c:\\\\Users\\\\Anton Reunov\\\\Programming\\\\Drunken-Sailor\\\\dataconnect\": could not find dataconnect.yaml in `c:\\Users\\Anton Reunov\\Programming\\Drunken-Sailor\\dataconnect`\n"}}
+[debug] [2026-05-21T13:30:02.527Z] E0521 15:30:02.526769   16696 watch.go:40] Failed to load config from "c:\\Users\\Anton Reunov\\Programming\\Drunken-Sailor\\dataconnect": could not find dataconnect.yaml in `c:\Users\Anton Reunov\Programming\Drunken-Sailor\dataconnect`
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"E0521 15:30:02.526769   16696 watch.go:40] Failed to load config from \"c:\\\\Users\\\\Anton Reunov\\\\Programming\\\\Drunken-Sailor\\\\dataconnect\": could not find dataconnect.yaml in `c:\\Users\\Anton Reunov\\Programming\\Drunken-Sailor\\dataconnect`\n"}}
+[debug] [2026-05-21T13:30:12.527Z] E0521 15:30:12.526942   16696 watch.go:40] Failed to load config from "c:\\Users\\Anton Reunov\\Programming\\Drunken-Sailor\\dataconnect": could not find dataconnect.yaml in `c:\Users\Anton Reunov\Programming\Drunken-Sailor\dataconnect`
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"E0521 15:30:12.526942   16696 watch.go:40] Failed to load config from \"c:\\\\Users\\\\Anton Reunov\\\\Programming\\\\Drunken-Sailor\\\\dataconnect\": could not find dataconnect.yaml in `c:\\Users\\Anton Reunov\\Programming\\Drunken-Sailor\\dataconnect`\n"}}
+[debug] [2026-05-21T13:30:22.527Z] E0521 15:30:22.527255   16696 watch.go:40] Failed to load config from "c:\\Users\\Anton Reunov\\Programming\\Drunken-Sailor\\dataconnect": could not find dataconnect.yaml in `c:\Users\Anton Reunov\Programming\Drunken-Sailor\dataconnect`
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"E0521 15:30:22.527255   16696 watch.go:40] Failed to load config from \"c:\\\\Users\\\\Anton Reunov\\\\Programming\\\\Drunken-Sailor\\\\dataconnect\": could not find dataconnect.yaml in `c:\\Users\\Anton Reunov\\Programming\\Drunken-Sailor\\dataconnect`\n"}}
+[debug] [2026-05-21T13:30:30.347Z] [Firebase Plugin] Value of process.env.MONOSPACE_ENV: undefined
+[debug] [2026-05-21T13:30:30.348Z] [Firebase Plugin] requireAuthWrapper
+[debug] [2026-05-21T13:30:30.349Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-05-21T13:30:30.350Z] > authorizing via signed-in user (antonreunov@gmail.com)
+[debug] [2026-05-21T13:30:30.351Z] Checked if tokens are valid: true, expires at: 1779371133366
+[debug] [2026-05-21T13:30:30.351Z] [Firebase Plugin] User found:  antonreunov@gmail.com
+[info] [Firebase Plugin] (Core:Project) New user detected, fetching projects
+[debug] [2026-05-21T13:30:30.352Z] Checked if tokens are valid: true, expires at: 1779371133366
+[debug] [2026-05-21T13:30:30.352Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects pageSize=1000
+[debug] [2026-05-21T13:30:30.359Z] [Firebase Plugin] Value of process.env.MONOSPACE_ENV: undefined
+[debug] [2026-05-21T13:30:30.359Z] [Firebase Plugin] requireAuthWrapper
+[debug] [2026-05-21T13:30:30.359Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-05-21T13:30:30.359Z] > authorizing via signed-in user (antonreunov@gmail.com)
+[debug] [2026-05-21T13:30:30.360Z] Checked if tokens are valid: true, expires at: 1779371133366
+[debug] [2026-05-21T13:30:30.360Z] [Firebase Plugin] User found:  antonreunov@gmail.com
+[info] [Firebase Plugin] (Core:Project) New user detected, fetching projects
+[debug] [2026-05-21T13:30:30.361Z] Checked if tokens are valid: true, expires at: 1779371133366
+[debug] [2026-05-21T13:30:30.361Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects pageSize=1000
+[debug] [2026-05-21T13:30:30.892Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects 200
+[debug] [2026-05-21T13:30:30.892Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects [omitted]
+[debug] [2026-05-21T13:30:31.259Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects 200
+[debug] [2026-05-21T13:30:31.259Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects [omitted]
+[debug] [2026-05-21T13:30:32.527Z] E0521 15:30:32.527075   16696 watch.go:116] watchAllDir unable to walk dir `c:\Users\Anton Reunov\Programming\Drunken-Sailor\dataconnect`: GetFileAttributesEx c:\Users\Anton Reunov\Programming\Drunken-Sailor\dataconnect: The system cannot find the file specified.
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"E0521 15:30:32.527075   16696 watch.go:116] watchAllDir unable to walk dir `c:\\Users\\Anton Reunov\\Programming\\Drunken-Sailor\\dataconnect`: GetFileAttributesEx c:\\Users\\Anton Reunov\\Programming\\Drunken-Sailor\\dataconnect: The system cannot find the file specified.\n"}}
+[debug] [2026-05-21T13:30:32.527Z] E0521 15:30:32.527075   16696 watch.go:40] Failed to load config from "c:\\Users\\Anton Reunov\\Programming\\Drunken-Sailor\\dataconnect": could not find dataconnect.yaml in `c:\Users\Anton Reunov\Programming\Drunken-Sailor\dataconnect`
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"E0521 15:30:32.527075   16696 watch.go:40] Failed to load config from \"c:\\\\Users\\\\Anton Reunov\\\\Programming\\\\Drunken-Sailor\\\\dataconnect\": could not find dataconnect.yaml in `c:\\Users\\Anton Reunov\\Programming\\Drunken-Sailor\\dataconnect`\n"}}
+[debug] [2026-05-21T13:30:42.528Z] E0521 15:30:42.527071   16696 watch.go:40] Failed to load config from "c:\\Users\\Anton Reunov\\Programming\\Drunken-Sailor\\dataconnect": could not find dataconnect.yaml in `c:\Users\Anton Reunov\Programming\Drunken-Sailor\dataconnect`
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"E0521 15:30:42.527071   16696 watch.go:40] Failed to load config from \"c:\\\\Users\\\\Anton Reunov\\\\Programming\\\\Drunken-Sailor\\\\dataconnect\": could not find dataconnect.yaml in `c:\\Users\\Anton Reunov\\Programming\\Drunken-Sailor\\dataconnect`\n"}}
+[debug] [2026-05-21T13:30:52.527Z] E0521 15:30:52.526631   16696 watch.go:40] Failed to load config from "c:\\Users\\Anton Reunov\\Programming\\Drunken-Sailor\\dataconnect": could not find dataconnect.yaml in `c:\Users\Anton Reunov\Programming\Drunken-Sailor\dataconnect`
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"E0521 15:30:52.526631   16696 watch.go:40] Failed to load config from \"c:\\\\Users\\\\Anton Reunov\\\\Programming\\\\Drunken-Sailor\\\\dataconnect\": could not find dataconnect.yaml in `c:\\Users\\Anton Reunov\\Programming\\Drunken-Sailor\\dataconnect`\n"}}
+[debug] [2026-05-21T13:31:02.527Z] E0521 15:31:02.526675   16696 watch.go:40] Failed to load config from "c:\\Users\\Anton Reunov\\Programming\\Drunken-Sailor\\dataconnect": could not find dataconnect.yaml in `c:\Users\Anton Reunov\Programming\Drunken-Sailor\dataconnect`
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"E0521 15:31:02.526675   16696 watch.go:40] Failed to load config from \"c:\\\\Users\\\\Anton Reunov\\\\Programming\\\\Drunken-Sailor\\\\dataconnect\": could not find dataconnect.yaml in `c:\\Users\\Anton Reunov\\Programming\\Drunken-Sailor\\dataconnect`\n"}}
+[debug] [2026-05-21T13:31:12.527Z] E0521 15:31:12.526946   16696 watch.go:40] Failed to load config from "c:\\Users\\Anton Reunov\\Programming\\Drunken-Sailor\\dataconnect": could not find dataconnect.yaml in `c:\Users\Anton Reunov\Programming\Drunken-Sailor\dataconnect`
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"E0521 15:31:12.526946   16696 watch.go:40] Failed to load config from \"c:\\\\Users\\\\Anton Reunov\\\\Programming\\\\Drunken-Sailor\\\\dataconnect\": could not find dataconnect.yaml in `c:\\Users\\Anton Reunov\\Programming\\Drunken-Sailor\\dataconnect`\n"}}
+[debug] [2026-05-21T13:31:22.527Z] E0521 15:31:22.527086   16696 watch.go:40] Failed to load config from "c:\\Users\\Anton Reunov\\Programming\\Drunken-Sailor\\dataconnect": could not find dataconnect.yaml in `c:\Users\Anton Reunov\Programming\Drunken-Sailor\dataconnect`
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"E0521 15:31:22.527086   16696 watch.go:40] Failed to load config from \"c:\\\\Users\\\\Anton Reunov\\\\Programming\\\\Drunken-Sailor\\\\dataconnect\": could not find dataconnect.yaml in `c:\\Users\\Anton Reunov\\Programming\\Drunken-Sailor\\dataconnect`\n"}}
+[debug] [2026-05-21T13:31:32.532Z] I0521 15:31:32.531598   16696 load.go:31] Reloading schema and connectors...
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0521 15:31:32.531598   16696 load.go:31] Reloading schema and connectors...\n"}}
+[debug] [2026-05-21T13:31:32.545Z] I0521 15:31:32.545122   16696 control.go:100] [projects/emulator/locations/emulator/services/drunken-sailor-f6905-service d2a1] UpdateResources(): done
+Main schema: sources: schema\schema.gql [0B] 
+Connector "example": sources: 
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0521 15:31:32.545122   16696 control.go:100] [projects/emulator/locations/emulator/services/drunken-sailor-f6905-service d2a1] UpdateResources(): done\nMain schema: sources: schema\\schema.gql [0B] \nConnector \"example\": sources: \n"}}
+[debug] [2026-05-21T13:31:32.564Z] E0521 15:31:32.564120   16696 load.go:95] Errors generating SDK: [connector "example"]: invalid Data Connect Connector no query found in connector
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"E0521 15:31:32.564120   16696 load.go:95] Errors generating SDK: [connector \"example\"]: invalid Data Connect Connector no query found in connector\n"}}
+[debug] [2026-05-21T13:31:32.570Z] I0521 15:31:32.570242   16696 collector.go:107] schema extensions wrote into "c:\\Users\\Anton Reunov\\Programming\\Drunken-Sailor\\dataconnect\\.dataconnect\\schema"
+Generated sources: prelude.gql [84989B] 
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0521 15:31:32.570242   16696 collector.go:107] schema extensions wrote into \"c:\\\\Users\\\\Anton Reunov\\\\Programming\\\\Drunken-Sailor\\\\dataconnect\\\\.dataconnect\\\\schema\"\nGenerated sources: prelude.gql [84989B] \n"}}
+[debug] [2026-05-21T13:31:32.571Z] I0521 15:31:32.570752   16696 load.go:109] Finished reloading
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0521 15:31:32.570752   16696 load.go:109] Finished reloading\n"}}
+[info] [Firebase Plugin] Stopping SQL Connect toolkit
+[warn] !  SQL Connect Emulator has exited upon receiving signal: SIGINT 
+[debug] [2026-05-21T13:41:38.912Z] [Firebase Plugin] Activating Firebase extension.
+[info] [Firebase Plugin] Checked firebase-tools, is up to date!
+[debug] [2026-05-21T13:41:41.293Z] [Firebase Plugin] requireAuthWrapper
+[debug] [2026-05-21T13:41:41.295Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-05-21T13:41:41.295Z] > authorizing via signed-in user (antonreunov@gmail.com)
+[debug] [2026-05-21T13:41:41.299Z] Checked if tokens are valid: true, expires at: 1779373868806
+[debug] [2026-05-21T13:41:41.299Z] Checked if tokens are valid: true, expires at: 1779373868806
+[debug] [2026-05-21T13:41:41.299Z] [Firebase Plugin] User found:  antonreunov@gmail.com
+[info] [Firebase Plugin] (Core:Project) New user detected, fetching projects
+[debug] [2026-05-21T13:41:41.301Z] Checked if tokens are valid: true, expires at: 1779373868806
+[debug] [2026-05-21T13:41:41.303Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects pageSize=1000
+[debug] [2026-05-21T13:41:41.310Z] [Firebase Plugin] VSCode notification server listening on port 40001
+[debug] [2026-05-21T13:41:41.666Z] [Firebase Plugin] Value of process.env.MONOSPACE_ENV: undefined
+[debug] [2026-05-21T13:41:41.667Z] [Firebase Plugin] requireAuthWrapper
+[debug] [2026-05-21T13:41:41.668Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-05-21T13:41:41.668Z] > authorizing via signed-in user (antonreunov@gmail.com)
+[debug] [2026-05-21T13:41:41.668Z] Checked if tokens are valid: true, expires at: 1779373868806
+[debug] [2026-05-21T13:41:41.668Z] [Firebase Plugin] User found:  antonreunov@gmail.com
+[info] [Firebase Plugin] (Core:Project) New user detected, fetching projects
+[debug] [2026-05-21T13:41:41.669Z] Checked if tokens are valid: true, expires at: 1779373868806
+[debug] [2026-05-21T13:41:41.669Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects pageSize=1000
+[debug] [2026-05-21T13:41:41.676Z] [Firebase Plugin] Value of process.env.MONOSPACE_ENV: undefined
+[debug] [2026-05-21T13:41:41.677Z] [Firebase Plugin] requireAuthWrapper
+[debug] [2026-05-21T13:41:41.677Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-05-21T13:41:41.677Z] > authorizing via signed-in user (antonreunov@gmail.com)
+[debug] [2026-05-21T13:41:41.678Z] Checked if tokens are valid: true, expires at: 1779373868806
+[debug] [2026-05-21T13:41:41.678Z] [Firebase Plugin] User found:  antonreunov@gmail.com
+[info] [Firebase Plugin] (Core:Project) New user detected, fetching projects
+[debug] [2026-05-21T13:41:41.679Z] Checked if tokens are valid: true, expires at: 1779373868806
+[debug] [2026-05-21T13:41:41.679Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects pageSize=1000
+[debug] [2026-05-21T13:41:41.841Z] Object "" in "firebase.json" has unknown property: {"additionalProperty":"flutter"}
+[info] [Firebase Plugin] Starting SQL Connect toolkit (version 3.4.8) on port 50001
+[debug] [2026-05-21T13:41:41.924Z] I0521 15:41:41.917842    9240 control.go:100] [projects/emulator/locations/emulator/services/drunken-sailor-f6905-service dae0] UpdateResources(): done
+Main schema: sources: schema\schema.gql [0B] 
+Connector "example": sources: 
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0521 15:41:41.917842    9240 control.go:100] [projects/emulator/locations/emulator/services/drunken-sailor-f6905-service dae0] UpdateResources(): done\nMain schema: sources: schema\\schema.gql [0B] \nConnector \"example\": sources: \n"}}
+[debug] [2026-05-21T13:41:41.925Z] Ignoring unsupported arg: auto_download {"metadata":{"emulator":{"name":"dataconnect"},"message":"Ignoring unsupported arg: auto_download"}}
+[debug] [2026-05-21T13:41:41.925Z] Ignoring unsupported arg: port {"metadata":{"emulator":{"name":"dataconnect"},"message":"Ignoring unsupported arg: port"}}
+[debug] [2026-05-21T13:41:41.925Z] Starting SQL Connect Emulator with command {"binary":"C:\\Users\\Anton Reunov\\.cache\\firebase\\emulators\\dataconnect-emulator-3.4.8.exe","args":["--logtostderr","-v=2","dev","--listen=localhost:50001","--config_dir=c:\\Users\\Anton Reunov\\Programming\\Drunken-Sailor\\dataconnect","--enable_output_schema_extensions=true","--enable_output_generated_sdk=true"],"optionalArgs":["listen","config_dir","enable_output_schema_extensions","enable_output_generated_sdk"],"joinArgs":true,"shell":false,"port":9399} {"metadata":{"emulator":{"name":"dataconnect"},"message":"Starting SQL Connect Emulator with command {\"binary\":\"C:\\\\Users\\\\Anton Reunov\\\\.cache\\\\firebase\\\\emulators\\\\dataconnect-emulator-3.4.8.exe\",\"args\":[\"--logtostderr\",\"-v=2\",\"dev\",\"--listen=localhost:50001\",\"--config_dir=c:\\\\Users\\\\Anton Reunov\\\\Programming\\\\Drunken-Sailor\\\\dataconnect\",\"--enable_output_schema_extensions=true\",\"--enable_output_generated_sdk=true\"],\"optionalArgs\":[\"listen\",\"config_dir\",\"enable_output_schema_extensions\",\"enable_output_generated_sdk\"],\"joinArgs\":true,\"shell\":false,\"port\":9399}"}}
+[info] i  dataconnect: SQL Connect Emulator logging to dataconnect-debug.log {"metadata":{"emulator":{"name":"dataconnect"},"message":"SQL Connect Emulator logging to \u001b[1mdataconnect-debug.log\u001b[22m"}}
+[debug] [2026-05-21T13:41:41.986Z] I0521 15:41:41.977558   14532 load.go:31] Reloading schema and connectors...
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0521 15:41:41.977558   14532 load.go:31] Reloading schema and connectors...\n"}}
+[debug] [2026-05-21T13:41:41.997Z] I0521 15:41:41.990105   14532 control.go:100] [projects/emulator/locations/emulator/services/drunken-sailor-f6905-service 82b3] UpdateResources(): done
+Main schema: sources: schema\schema.gql [0B] 
+Connector "example": sources: 
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0521 15:41:41.990105   14532 control.go:100] [projects/emulator/locations/emulator/services/drunken-sailor-f6905-service 82b3] UpdateResources(): done\nMain schema: sources: schema\\schema.gql [0B] \nConnector \"example\": sources: \n"}}
+[debug] [2026-05-21T13:41:42.005Z] E0521 15:41:41.999139   14532 load.go:95] Errors generating SDK: [connector "example"]: invalid Data Connect Connector no query found in connector
+I0521 15:41:41.999139   14532 collector.go:107] schema extensions wrote into "c:\\Users\\Anton Reunov\\Programming\\Drunken-Sailor\\dataconnect\\.dataconnect\\schema"
+Generated sources: prelude.gql [84989B] 
+I0521 15:41:41.999139   14532 load.go:109] Finished reloading
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"E0521 15:41:41.999139   14532 load.go:95] Errors generating SDK: [connector \"example\"]: invalid Data Connect Connector no query found in connector\nI0521 15:41:41.999139   14532 collector.go:107] schema extensions wrote into \"c:\\\\Users\\\\Anton Reunov\\\\Programming\\\\Drunken-Sailor\\\\dataconnect\\\\.dataconnect\\\\schema\"\nGenerated sources: prelude.gql [84989B] \nI0521 15:41:41.999139   14532 load.go:109] Finished reloading\n"}}
+[debug] [2026-05-21T13:41:42.022Z] I0521 15:41:42.019097   14532 dev.go:104] Listening on address (HTTP + gRPC): 127.0.0.1:50001
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0521 15:41:42.019097   14532 dev.go:104] Listening on address (HTTP + gRPC): 127.0.0.1:50001\n"}}
+[debug] [2026-05-21T13:41:42.261Z] I0521 15:41:42.256428   14532 engine.go:209] [projects/emulator/locations/emulator/services/drunken-sailor-f6905-service 82b3] ExecuteGraphqlRead query IntrospectionQuery: succeeded. 
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0521 15:41:42.256428   14532 engine.go:209] [projects/emulator/locations/emulator/services/drunken-sailor-f6905-service 82b3] ExecuteGraphqlRead query IntrospectionQuery: succeeded. \n"}}
+[debug] [2026-05-21T13:41:42.385Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects 200
+[debug] [2026-05-21T13:41:42.386Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects [omitted]
+[debug] [2026-05-21T13:41:42.403Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects 200
+[debug] [2026-05-21T13:41:42.403Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects [omitted]
+[debug] [2026-05-21T13:41:42.442Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects 200
+[debug] [2026-05-21T13:41:42.442Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects [omitted]
+[debug] [2026-05-21T13:41:55.604Z] I0521 15:41:55.601964   14532 docs.go:34] Docs Server: GET /docs
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0521 15:41:55.601964   14532 docs.go:34] Docs Server: GET /docs\n"}}
+[debug] [2026-05-21T13:41:55.608Z] I0521 15:41:55.607206   14532 docs.go:34] Docs Server: GET /docs/drunken-sailor-f6905-service/query.md
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0521 15:41:55.607206   14532 docs.go:34] Docs Server: GET /docs/drunken-sailor-f6905-service/query.md\n"}}
+[info] +  Wrote .gemini/extensions/firebase/gemini-extension.json 
+[info] +  Wrote .gemini/extensions/firebase/contexts/FIREBASE-BASE.md 
+[info] +  Wrote .gemini/extensions/firebase/FIREBASE.md 
+[info] [Firebase Plugin] Stopping SQL Connect toolkit
+[warn] !  SQL Connect Emulator has exited upon receiving signal: SIGINT 
+[debug] [2026-05-21T13:49:29.351Z] [Firebase Plugin] Activating Firebase extension.
+[info] [Firebase Plugin] Checked firebase-tools, is up to date!
+[debug] [2026-05-21T13:49:31.665Z] [Firebase Plugin] requireAuthWrapper
+[debug] [2026-05-21T13:49:31.666Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-05-21T13:49:31.666Z] > authorizing via signed-in user (antonreunov@gmail.com)
+[debug] [2026-05-21T13:49:31.668Z] Checked if tokens are valid: true, expires at: 1779373868806
+[debug] [2026-05-21T13:49:31.669Z] Checked if tokens are valid: true, expires at: 1779373868806
+[debug] [2026-05-21T13:49:31.669Z] [Firebase Plugin] User found:  antonreunov@gmail.com
+[info] [Firebase Plugin] (Core:Project) New user detected, fetching projects
+[debug] [2026-05-21T13:49:31.670Z] Checked if tokens are valid: true, expires at: 1779373868806
+[debug] [2026-05-21T13:49:31.671Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects pageSize=1000
+[debug] [2026-05-21T13:49:31.677Z] [Firebase Plugin] VSCode notification server listening on port 40001
+[debug] [2026-05-21T13:49:31.957Z] Object "" in "firebase.json" has unknown property: {"additionalProperty":"flutter"}
+[info] [Firebase Plugin] Starting SQL Connect toolkit (version 3.4.8) on port 50001
+[debug] [2026-05-21T13:49:32.028Z] I0521 15:49:32.021063   17528 control.go:100] [projects/emulator/locations/emulator/services/drunken-sailor-f6905-service 7720] UpdateResources(): done
+Main schema: sources: schema\schema.gql [0B] 
+Connector "example": sources: 
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0521 15:49:32.021063   17528 control.go:100] [projects/emulator/locations/emulator/services/drunken-sailor-f6905-service 7720] UpdateResources(): done\nMain schema: sources: schema\\schema.gql [0B] \nConnector \"example\": sources: \n"}}
+[debug] [2026-05-21T13:49:32.029Z] Ignoring unsupported arg: auto_download {"metadata":{"emulator":{"name":"dataconnect"},"message":"Ignoring unsupported arg: auto_download"}}
+[debug] [2026-05-21T13:49:32.029Z] Ignoring unsupported arg: port {"metadata":{"emulator":{"name":"dataconnect"},"message":"Ignoring unsupported arg: port"}}
+[debug] [2026-05-21T13:49:32.029Z] Starting SQL Connect Emulator with command {"binary":"C:\\Users\\Anton Reunov\\.cache\\firebase\\emulators\\dataconnect-emulator-3.4.8.exe","args":["--logtostderr","-v=2","dev","--listen=localhost:50001","--config_dir=c:\\Users\\Anton Reunov\\Programming\\Drunken-Sailor\\dataconnect","--enable_output_schema_extensions=true","--enable_output_generated_sdk=true"],"optionalArgs":["listen","config_dir","enable_output_schema_extensions","enable_output_generated_sdk"],"joinArgs":true,"shell":false,"port":9399} {"metadata":{"emulator":{"name":"dataconnect"},"message":"Starting SQL Connect Emulator with command {\"binary\":\"C:\\\\Users\\\\Anton Reunov\\\\.cache\\\\firebase\\\\emulators\\\\dataconnect-emulator-3.4.8.exe\",\"args\":[\"--logtostderr\",\"-v=2\",\"dev\",\"--listen=localhost:50001\",\"--config_dir=c:\\\\Users\\\\Anton Reunov\\\\Programming\\\\Drunken-Sailor\\\\dataconnect\",\"--enable_output_schema_extensions=true\",\"--enable_output_generated_sdk=true\"],\"optionalArgs\":[\"listen\",\"config_dir\",\"enable_output_schema_extensions\",\"enable_output_generated_sdk\"],\"joinArgs\":true,\"shell\":false,\"port\":9399}"}}
+[info] i  dataconnect: SQL Connect Emulator logging to dataconnect-debug.log {"metadata":{"emulator":{"name":"dataconnect"},"message":"SQL Connect Emulator logging to \u001b[1mdataconnect-debug.log\u001b[22m"}}
+[debug] [2026-05-21T13:49:32.126Z] [Firebase Plugin] Value of process.env.MONOSPACE_ENV: undefined
+[debug] [2026-05-21T13:49:32.127Z] [Firebase Plugin] requireAuthWrapper
+[debug] [2026-05-21T13:49:32.128Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-05-21T13:49:32.128Z] > authorizing via signed-in user (antonreunov@gmail.com)
+[debug] [2026-05-21T13:49:32.129Z] Checked if tokens are valid: true, expires at: 1779373868806
+[debug] [2026-05-21T13:49:32.129Z] [Firebase Plugin] User found:  antonreunov@gmail.com
+[info] [Firebase Plugin] (Core:Project) New user detected, fetching projects
+[debug] [2026-05-21T13:49:32.132Z] Checked if tokens are valid: true, expires at: 1779373868806
+[debug] [2026-05-21T13:49:32.133Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects pageSize=1000
+[debug] [2026-05-21T13:49:32.145Z] [Firebase Plugin] Value of process.env.MONOSPACE_ENV: undefined
+[debug] [2026-05-21T13:49:32.146Z] [Firebase Plugin] requireAuthWrapper
+[debug] [2026-05-21T13:49:32.147Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-05-21T13:49:32.148Z] > authorizing via signed-in user (antonreunov@gmail.com)
+[debug] [2026-05-21T13:49:32.148Z] Checked if tokens are valid: true, expires at: 1779373868806
+[debug] [2026-05-21T13:49:32.149Z] [Firebase Plugin] User found:  antonreunov@gmail.com
+[info] [Firebase Plugin] (Core:Project) New user detected, fetching projects
+[debug] [2026-05-21T13:49:32.150Z] Checked if tokens are valid: true, expires at: 1779373868806
+[debug] [2026-05-21T13:49:32.150Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects pageSize=1000
+[debug] [2026-05-21T13:49:32.292Z] I0521 15:49:32.067022   16152 load.go:31] Reloading schema and connectors...
+I0521 15:49:32.071202   16152 control.go:100] [projects/emulator/locations/emulator/services/drunken-sailor-f6905-service df41] UpdateResources(): done
+Main schema: sources: schema\schema.gql [0B] 
+Connector "example": sources: 
+E0521 15:49:32.077484   16152 load.go:95] Errors generating SDK: [connector "example"]: invalid Data Connect Connector no query found in connector
+I0521 15:49:32.078597   16152 collector.go:107] schema extensions wrote into "c:\\Users\\Anton Reunov\\Programming\\Drunken-Sailor\\dataconnect\\.dataconnect\\schema"
+Generated sources: prelude.gql [84989B] 
+I0521 15:49:32.078597   16152 load.go:109] Finished reloading
+I0521 15:49:32.099233   16152 dev.go:104] Listening on address (HTTP + gRPC): 127.0.0.1:50001
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0521 15:49:32.067022   16152 load.go:31] Reloading schema and connectors...\nI0521 15:49:32.071202   16152 control.go:100] [projects/emulator/locations/emulator/services/drunken-sailor-f6905-service df41] UpdateResources(): done\nMain schema: sources: schema\\schema.gql [0B] \nConnector \"example\": sources: \nE0521 15:49:32.077484   16152 load.go:95] Errors generating SDK: [connector \"example\"]: invalid Data Connect Connector no query found in connector\nI0521 15:49:32.078597   16152 collector.go:107] schema extensions wrote into \"c:\\\\Users\\\\Anton Reunov\\\\Programming\\\\Drunken-Sailor\\\\dataconnect\\\\.dataconnect\\\\schema\"\nGenerated sources: prelude.gql [84989B] \nI0521 15:49:32.078597   16152 load.go:109] Finished reloading\nI0521 15:49:32.099233   16152 dev.go:104] Listening on address (HTTP + gRPC): 127.0.0.1:50001\n"}}
+[debug] [2026-05-21T13:49:32.407Z] I0521 15:49:32.406781   16152 engine.go:209] [projects/emulator/locations/emulator/services/drunken-sailor-f6905-service df41] ExecuteGraphqlRead query IntrospectionQuery: succeeded. 
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0521 15:49:32.406781   16152 engine.go:209] [projects/emulator/locations/emulator/services/drunken-sailor-f6905-service df41] ExecuteGraphqlRead query IntrospectionQuery: succeeded. \n"}}
+[debug] [2026-05-21T13:49:32.789Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects 200
+[debug] [2026-05-21T13:49:32.789Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects [omitted]
+[debug] [2026-05-21T13:49:32.796Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects 200
+[debug] [2026-05-21T13:49:32.796Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects [omitted]
+[debug] [2026-05-21T13:49:32.850Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects 200
+[debug] [2026-05-21T13:49:32.851Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects [omitted]
+[info] +  Wrote .gemini/extensions/firebase/gemini-extension.json 
+[info] +  Wrote .gemini/extensions/firebase/gemini-extension.json 
+[info] +  Wrote .gemini/extensions/firebase/gemini-extension.json 
+[info] [Firebase Plugin] Stopping SQL Connect toolkit
+[warn] !  SQL Connect Emulator has exited upon receiving signal: SIGINT 
+[debug] [2026-05-21T15:50:58.592Z] [Firebase Plugin] Activating Firebase extension.
+[info] [Firebase Plugin] Checked firebase-tools, is up to date!
+[debug] [2026-05-21T15:51:00.543Z] [Firebase Plugin] requireAuthWrapper
+[debug] [2026-05-21T15:51:00.544Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-05-21T15:51:00.545Z] > authorizing via signed-in user (antonreunov@gmail.com)
+[debug] [2026-05-21T15:51:00.547Z] Checked if tokens are valid: false, expires at: 1779373868806
+[debug] [2026-05-21T15:51:00.547Z] Checked if tokens are valid: false, expires at: 1779373868806
+[debug] [2026-05-21T15:51:00.548Z] > refreshing access token with scopes: []
+[debug] [2026-05-21T15:51:00.549Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2026-05-21T15:51:00.549Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-05-21T15:51:00.556Z] [Firebase Plugin] VSCode notification server listening on port 40001
+[debug] [2026-05-21T15:51:01.566Z] Object "" in "firebase.json" has unknown property: {"additionalProperty":"flutter"}
+[info] [Firebase Plugin] Starting SQL Connect toolkit (version 3.4.8) on port 50001
+[debug] [2026-05-21T15:51:01.650Z] I0521 17:51:01.644753    6512 control.go:100] [projects/emulator/locations/emulator/services/drunken-sailor-f6905-service 58bf] UpdateResources(): done
+Main schema: sources: schema\schema.gql [0B] 
+Connector "example": sources: 
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0521 17:51:01.644753    6512 control.go:100] [projects/emulator/locations/emulator/services/drunken-sailor-f6905-service 58bf] UpdateResources(): done\nMain schema: sources: schema\\schema.gql [0B] \nConnector \"example\": sources: \n"}}
+[debug] [2026-05-21T15:51:01.651Z] Ignoring unsupported arg: auto_download {"metadata":{"emulator":{"name":"dataconnect"},"message":"Ignoring unsupported arg: auto_download"}}
+[debug] [2026-05-21T15:51:01.651Z] Ignoring unsupported arg: port {"metadata":{"emulator":{"name":"dataconnect"},"message":"Ignoring unsupported arg: port"}}
+[debug] [2026-05-21T15:51:01.651Z] Starting SQL Connect Emulator with command {"binary":"C:\\Users\\Anton Reunov\\.cache\\firebase\\emulators\\dataconnect-emulator-3.4.8.exe","args":["--logtostderr","-v=2","dev","--listen=localhost:50001","--config_dir=c:\\Users\\Anton Reunov\\Programming\\Drunken-Sailor\\dataconnect","--enable_output_schema_extensions=true","--enable_output_generated_sdk=true"],"optionalArgs":["listen","config_dir","enable_output_schema_extensions","enable_output_generated_sdk"],"joinArgs":true,"shell":false,"port":9399} {"metadata":{"emulator":{"name":"dataconnect"},"message":"Starting SQL Connect Emulator with command {\"binary\":\"C:\\\\Users\\\\Anton Reunov\\\\.cache\\\\firebase\\\\emulators\\\\dataconnect-emulator-3.4.8.exe\",\"args\":[\"--logtostderr\",\"-v=2\",\"dev\",\"--listen=localhost:50001\",\"--config_dir=c:\\\\Users\\\\Anton Reunov\\\\Programming\\\\Drunken-Sailor\\\\dataconnect\",\"--enable_output_schema_extensions=true\",\"--enable_output_generated_sdk=true\"],\"optionalArgs\":[\"listen\",\"config_dir\",\"enable_output_schema_extensions\",\"enable_output_generated_sdk\"],\"joinArgs\":true,\"shell\":false,\"port\":9399}"}}
+[info] i  dataconnect: SQL Connect Emulator logging to dataconnect-debug.log {"metadata":{"emulator":{"name":"dataconnect"},"message":"SQL Connect Emulator logging to \u001b[1mdataconnect-debug.log\u001b[22m"}}
+[debug] [2026-05-21T15:51:01.717Z] I0521 17:51:01.684523   14140 load.go:31] Reloading schema and connectors...
+I0521 17:51:01.690150   14140 control.go:100] [projects/emulator/locations/emulator/services/drunken-sailor-f6905-service a783] UpdateResources(): done
+Main schema: sources: schema\schema.gql [0B] 
+Connector "example": sources: 
+E0521 17:51:01.694083   14140 load.go:95] Errors generating SDK: [connector "example"]: invalid Data Connect Connector no query found in connector
+I0521 17:51:01.695165   14140 collector.go:107] schema extensions wrote into "c:\\Users\\Anton Reunov\\Programming\\Drunken-Sailor\\dataconnect\\.dataconnect\\schema"
+Generated sources: prelude.gql [84989B] 
+I0521 17:51:01.695165   14140 load.go:109] Finished reloading
+I0521 17:51:01.705480   14140 dev.go:104] Listening on address (HTTP + gRPC): 127.0.0.1:50001
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0521 17:51:01.684523   14140 load.go:31] Reloading schema and connectors...\nI0521 17:51:01.690150   14140 control.go:100] [projects/emulator/locations/emulator/services/drunken-sailor-f6905-service a783] UpdateResources(): done\nMain schema: sources: schema\\schema.gql [0B] \nConnector \"example\": sources: \nE0521 17:51:01.694083   14140 load.go:95] Errors generating SDK: [connector \"example\"]: invalid Data Connect Connector no query found in connector\nI0521 17:51:01.695165   14140 collector.go:107] schema extensions wrote into \"c:\\\\Users\\\\Anton Reunov\\\\Programming\\\\Drunken-Sailor\\\\dataconnect\\\\.dataconnect\\\\schema\"\nGenerated sources: prelude.gql [84989B] \nI0521 17:51:01.695165   14140 load.go:109] Finished reloading\nI0521 17:51:01.705480   14140 dev.go:104] Listening on address (HTTP + gRPC): 127.0.0.1:50001\n"}}
+[debug] [2026-05-21T15:51:01.899Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2026-05-21T15:51:01.900Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-05-21T15:51:01.911Z] [Firebase Plugin] User found:  antonreunov@gmail.com
+[info] [Firebase Plugin] (Core:Project) New user detected, fetching projects
+[debug] [2026-05-21T15:51:01.913Z] Checked if tokens are valid: true, expires at: 1779382260900
+[debug] [2026-05-21T15:51:01.914Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects pageSize=1000
+[debug] [2026-05-21T15:51:02.009Z] I0521 17:51:02.009015   14140 engine.go:209] [projects/emulator/locations/emulator/services/drunken-sailor-f6905-service a783] ExecuteGraphqlRead query IntrospectionQuery: succeeded. 
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0521 17:51:02.009015   14140 engine.go:209] [projects/emulator/locations/emulator/services/drunken-sailor-f6905-service a783] ExecuteGraphqlRead query IntrospectionQuery: succeeded. \n"}}
+[debug] [2026-05-21T15:51:02.401Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects 200
+[debug] [2026-05-21T15:51:02.401Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects [omitted]
+[info] [Firebase Plugin] Stopping SQL Connect toolkit
+[warn] !  SQL Connect Emulator has exited upon receiving signal: SIGINT 
