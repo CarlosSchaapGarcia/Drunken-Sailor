@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.example.drunken_sailor"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 36  // Updated to support all plugin dependencies
     ndkVersion = flutter.ndkVersion
 
     compileOptions {

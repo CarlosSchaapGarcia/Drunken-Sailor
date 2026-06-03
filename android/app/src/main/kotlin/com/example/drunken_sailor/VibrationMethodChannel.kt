@@ -6,12 +6,6 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.embedding.engine.dart.DartExecutor
-import io.flutter.embedding.engine.plugins.FlutterPlugin
-import io.flutter.embedding.engine.FlutterEngine
-import io.flutter.embedding.engine.dart.DartExecutor
-import io.flutter.embedding.engine.plugins.service.ServiceAware
-import io.flutter.embedding.engine.plugins.sharedpreferences.SharedPreferencesPlugin
-import io.flutter.embedding.engine.plugins.workmanager.WorkmanagerPlugin
 import io.flutter.plugin.common.MethodChannel
 
 class VibrationMethodChannel(private val context: Context) {
@@ -24,7 +18,7 @@ class VibrationMethodChannel(private val context: Context) {
 
   fun setupChannel(flutterEngine: FlutterEngine) {
     MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
-      .setMethodCallHandler { call, result ->
+      .setMethodCallHandler { call, resultHandler ->
         when (call.method) {
           "startVibration" -> {
             val onDuration = call.argument<Int>("onDuration")?.toLong() ?: 500
@@ -32,13 +26,13 @@ class VibrationMethodChannel(private val context: Context) {
             val amplitude = call.argument<Int>("amplitude") ?: 128
 
             startVibration(onDuration, offDuration, amplitude)
-            result(null)
+            resultHandler.success(null)
           }
           "stopVibration" -> {
             stopVibration()
-            result(null)
+            resultHandler.success(null)
           }
-          else -> result(null)
+          else -> resultHandler.notImplemented()
         }
       }
   }
@@ -51,16 +45,16 @@ class VibrationMethodChannel(private val context: Context) {
     }
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-      // API 26+: Use VibrationEffect with waveform for smooth, repeating vibration
+      // API 26+: Use VibrationEffect with waveform
       val pattern = longArrayOf(0, onDuration, offDuration)
-      val amplitudes = intArrayOf(0, amplitude, 0)
 
       val effect = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-        // API 33+: Can use repeat index for proper infinite looping
+        // API 33+: createWaveform with amplitudes and repeat index
+        val amplitudes = intArrayOf(0, amplitude, 0)
         VibrationEffect.createWaveform(pattern, amplitudes, 1)
       } else {
-        // API 26-32: createWaveform with repeat
-        VibrationEffect.createWaveform(pattern, amplitudes)
+        // API 26-32: createWaveform with timings only
+        VibrationEffect.createWaveform(pattern, 0)
       }
 
       vibrator.vibrate(effect)
@@ -68,7 +62,8 @@ class VibrationMethodChannel(private val context: Context) {
     } else {
       // Fallback for API < 26: Use deprecated pattern-based vibration
       @Suppress("DEPRECATION")
-      vibrator.vibrate(longArrayOf(0, onDuration, offDuration), 1)
+      val pattern = longArrayOf(0, onDuration, offDuration)
+      vibrator.vibrate(pattern, 1)
       currentVibration = System.currentTimeMillis()
     }
   }
