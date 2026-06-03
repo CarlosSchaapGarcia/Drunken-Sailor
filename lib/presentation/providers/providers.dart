@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:async';
 import 'package:geolocator/geolocator.dart';
 import '../../data/repositories/firestore_bar_repository.dart';
+import '../../data/services/heading_service.dart';
 import '../../data/services/location_service.dart';
 import '../../data/services/vibration_service.dart';
 import '../../domain/models/bar.dart';
@@ -14,6 +16,10 @@ final barRepositoryProvider = Provider<BarRepository>(
 
 final locationServiceProvider = Provider<LocationService>(
   (ref) => LocationService(),
+);
+
+final headingServiceProvider = Provider<HeadingService>(
+  (ref) => HeadingService(),
 );
 
 final vibrationServiceProvider = Provider<VibrationService>(
@@ -110,3 +116,106 @@ final openBarPositionsProvider = StreamProvider.autoDispose<List<BarRelativePosi
         .toList();
   });
 });
+
+// -- Compass Heading (magnetometer + accelerometer) --
+
+final headingStreamProvider = StreamProvider<double>((ref) {
+  final service = ref.watch(headingServiceProvider);
+  // Start reading sensors when this provider is watched
+  ref.onDispose(() => service.stop());
+  // Return stream (service.start() is called by compass_view on first build)
+  return service.headingStream;
+});
+
+// -- Nearest bar true bearing (for compass needle) --
+
+/// Provides bearing to nearest open bar from user's current location
+/// Returns null if no nearby bars or all closed; bearing is true north (0-360°)
+final nearestBarBearingProvider = StreamProvider.autoDispose<double?>((ref) async* {
+  final locationStream = ref.watch(locationStreamProvider.stream);
+  final repo = ref.read(barRepositoryProvider);
+
+  await for (final pos in locationStream) {
+    final nearby = await repo.findNearbyBars(
+      pos.latitude,
+      pos.longitude,
+      radiusKm: 5.0,
+      limit: 10,
+    );
+
+    final now = DateTime.now();
+    final openBars = nearby.where((b) => b.isOpenAt(now)).toList();
+
+    if (openBars.isEmpty) {
+      yield null;
+    } else {
+      // Sort by distance and get nearest
+      openBars.sort((a, b) {
+        final distA = a.distanceTo(pos.latitude, pos.longitude);
+        final distB = b.distanceTo(pos.latitude, pos.longitude);
+        return distA.compareTo(distB);
+      });
+
+      final nearest = openBars.first;
+      final bearing = nearest.bearingTo(pos.latitude, pos.longitude);
+      yield bearing;
+    }
+  }
+});
+
+// -- Compass needle rotation (smooth animation target) --
+
+/// Combines device heading + target bearing to nearest bar
+/// Emits the needle rotation angle (0-360°)
+/// Updates smoothly with jitter filtering and < 500ms lag
+final compassNeedleProvider = StreamProvider.autoDispose<double>((ref) {
+  final headingStream = ref.watch(headingStreamProvider.stream);
+  final bearingStream = ref.watch(nearestBarBearingProvider.stream);
+
+  // Combine both streams: update whenever either changes
+  return _combineHeadingAndBearing(headingStream, bearingStream);
+});
+
+/// Helper to combine two streams
+Stream<double> _combineHeadingAndBearing(
+  Stream<double> headingStream,
+  Stream<double?> bearingStream,
+) {
+  final controller = StreamController<double>();
+  double? lastHeading;
+  double? lastBearing;
+
+  // Listen to heading stream
+  final headingSub = headingStream.listen((heading) {
+    lastHeading = heading;
+    if (lastHeading != null) {
+      final bearing = lastBearing;
+      if (bearing == null) {
+        controller.add(0.0);
+      } else {
+        final angle = (bearing - lastHeading! + 360) % 360;
+        controller.add(angle);
+      }
+    }
+  }, onError: (e) => controller.addError(e));
+
+  // Listen to bearing stream
+  final bearingSub = bearingStream.listen((bearing) {
+    lastBearing = bearing;
+    if (lastHeading != null) {
+      if (bearing == null) {
+        controller.add(0.0);
+      } else {
+        final angle = (bearing - lastHeading! + 360) % 360;
+        controller.add(angle);
+      }
+    }
+  }, onError: (e) => controller.addError(e));
+
+  controller.onCancel = () {
+    headingSub.cancel();
+    bearingSub.cancel();
+  };
+
+  return controller.stream;
+}

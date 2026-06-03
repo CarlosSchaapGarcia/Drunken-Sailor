@@ -1,49 +1,176 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:math' as math;
+import '../providers/providers.dart';
 
-class CompassView extends StatefulWidget {
+class CompassView extends ConsumerStatefulWidget {
   const CompassView({Key? key}) : super(key: key);
 
   @override
-  State<CompassView> createState() => _CompassViewState();
+  ConsumerState<CompassView> createState() => _CompassViewState();
 }
 
-class _CompassViewState extends State<CompassView> with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  double _currentRotation = 45;
+class _CompassViewState extends ConsumerState<CompassView>
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
+  late AnimationController _animationController;
+  late Animation<double> _rotationAnimation;
+  double _targetRotation = 0;
+  double _currentRotation = 0;
+  bool _isSensorActive = false;
+  VoidCallback? _animationListener;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      duration: const Duration(seconds: 2),
-      vsync: this,
-    )..repeat();
+    WidgetsBinding.instance.addObserver(this);
 
-    // Simulate compass rotation
-    _controller.addListener(() {
-      setState(() {
-        _currentRotation = (45 + (_controller.value * 360)) % 360;
-      });
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+
+    // Initialize heading service on first build
+    Future.microtask(() {
+      if (mounted) {
+        _initializeHeading();
+      }
     });
+  }
+
+  void _initializeHeading() async {
+    final headingService = ref.read(headingServiceProvider);
+    try {
+      await headingService.start();
+      if (mounted) {
+        setState(() => _isSensorActive = true);
+      }
+    } catch (e) {
+      debugPrint('Error initializing heading service: $e');
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final headingService = ref.read(headingServiceProvider);
+    if (state == AppLifecycleState.resumed && !_isSensorActive) {
+      headingService.start();
+      setState(() => _isSensorActive = true);
+    } else if (state == AppLifecycleState.paused) {
+      headingService.stop();
+      setState(() => _isSensorActive = false);
+    }
+  }
+
+  void _updateRotation(double newRotation) {
+    if (!mounted) return;
+
+    // Calculate shortest rotation path
+    double delta = (newRotation - _currentRotation + 180) % 360 - 180;
+    if (delta.isNaN) delta = 0;
+
+    _targetRotation = _currentRotation + delta;
+
+    // Remove old listener before adding new one
+    if (_animationListener != null) {
+      _rotationAnimation.removeListener(_animationListener!);
+    }
+
+    _rotationAnimation = Tween<double>(
+      begin: _currentRotation,
+      end: _targetRotation,
+    ).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
+
+    // Create and store listener reference
+    _animationListener = () {
+      if (mounted) {
+        setState(() {
+          _currentRotation = _rotationAnimation.value % 360;
+        });
+      }
+    };
+    
+    _rotationAnimation.addListener(_animationListener!);
+    _animationController.forward(from: 0.0);
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    if (_animationListener != null) {
+      _rotationAnimation.removeListener(_animationListener!);
+    }
+    WidgetsBinding.instance.removeObserver(this);
+    _animationController.dispose();
+    final headingService = ref.read(headingServiceProvider);
+    headingService.stop();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    // Watch the compass needle rotation stream
+    final needleAsync = ref.watch(compassNeedleProvider);
+
     return SingleChildScrollView(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: SizedBox(
           width: double.infinity,
           height: 400,
-          child: CustomPaint(
-            painter: CompassPainter(rotation: _currentRotation),
+          child: needleAsync.when(
+            data: (rotation) {
+              // Update animation when bearing changes (including first value)
+              _updateRotation(rotation);
+
+              return CustomPaint(
+                painter: CompassPainter(rotation: _currentRotation),
+              );
+            },
+            loading: () => CustomPaint(
+              painter: CompassPainter(rotation: 0),
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation(Color(0xFFfbbf24)),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      _isSensorActive ? 'Acquiring heading...' : 'Initializing sensors...',
+                      style: const TextStyle(
+                        color: Color(0xFFfbbf24),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            error: (error, stack) => CustomPaint(
+              painter: CompassPainter(rotation: 0),
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.error_outline,
+                      color: Color(0xFFef4444),
+                      size: 32,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Heading unavailable',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: const Color(0xFFef4444),
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
         ),
       ),
@@ -94,7 +221,7 @@ class CompassPainter extends CustomPainter {
     // Draw tick marks
     _drawTickMarks(canvas, center, radius);
 
-    // Draw compass needle
+    // Draw compass needle pointing to target bearing
     _drawNeedle(canvas, center, radius);
 
     // Draw center dot
@@ -164,9 +291,10 @@ class CompassPainter extends CustomPainter {
 
   void _drawNeedle(Canvas canvas, Offset center, double radius) {
     final needleLength = radius * 0.6;
+    // Needle points to the rotation angle (0° = north/up)
     final angle = (rotation - 90) * math.pi / 180;
 
-    // Red needle (pointing)
+    // Red needle pointing to target bar (top)
     final redEnd = Offset(
       center.dx + needleLength * math.cos(angle),
       center.dy + needleLength * math.sin(angle),
@@ -192,7 +320,7 @@ class CompassPainter extends CustomPainter {
         ..style = PaintingStyle.fill,
     );
 
-    // Light needle (back)
+    // Light needle (back opposite side)
     final angle180 = (rotation - 90 + 180) * math.pi / 180;
     final lightEnd = Offset(
       center.dx + (needleLength * 0.4) * math.cos(angle180),
