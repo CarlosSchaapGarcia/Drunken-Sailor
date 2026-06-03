@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 import '../providers/providers.dart';
 
 class CompassView extends ConsumerStatefulWidget {
@@ -18,6 +19,7 @@ class _CompassViewState extends ConsumerState<CompassView>
   double _currentRotation = 0;
   bool _isSensorActive = false;
   VoidCallback? _animationListener;
+  ui.Image? _woodTexture;
 
   @override
   void initState() {
@@ -29,12 +31,33 @@ class _CompassViewState extends ConsumerState<CompassView>
       vsync: this,
     );
 
+    // Load wooden texture image
+    _loadWoodTexture();
+
     // Initialize heading service on first build
     Future.microtask(() {
       if (mounted) {
         _initializeHeading();
       }
     });
+  }
+
+  void _loadWoodTexture() async {
+    try {
+      final ImageProvider imageProvider = NetworkImage(
+        'https://images.unsplash.com/photo-1546484396-fb3fc6f95f98?w=1200&q=80',
+      );
+      final ImageStream imageStream = imageProvider.resolve(ImageConfiguration.empty);
+      imageStream.addListener(ImageStreamListener((image, synchronousCall) {
+        if (mounted) {
+          setState(() {
+            _woodTexture = image.image;
+          });
+        }
+      }));
+    } catch (e) {
+      debugPrint('Error loading wood texture: $e');
+    }
   }
 
   void _initializeHeading() async {
@@ -124,11 +147,11 @@ class _CompassViewState extends ConsumerState<CompassView>
               _updateRotation(rotation);
 
               return CustomPaint(
-                painter: CompassPainter(rotation: _currentRotation),
+                painter: CompassPainter(rotation: _currentRotation, woodTexture: _woodTexture),
               );
             },
             loading: () => CustomPaint(
-              painter: CompassPainter(rotation: 0),
+              painter: CompassPainter(rotation: 0, woodTexture: _woodTexture),
               child: Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -150,7 +173,7 @@ class _CompassViewState extends ConsumerState<CompassView>
               ),
             ),
             error: (error, stack) => CustomPaint(
-              painter: CompassPainter(rotation: 0),
+              painter: CompassPainter(rotation: 0, woodTexture: _woodTexture),
               child: Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -180,13 +203,17 @@ class _CompassViewState extends ConsumerState<CompassView>
 
 class CompassPainter extends CustomPainter {
   final double rotation;
+  final ui.Image? woodTexture;
 
-  CompassPainter({required this.rotation});
+  CompassPainter({required this.rotation, this.woodTexture});
 
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = size.width / 2 - 20;
+
+    // Draw wooden background with overlay
+    _drawWoodBackground(canvas, size);
 
     // Draw outer circle with border
     canvas.drawCircle(
@@ -245,6 +272,48 @@ class CompassPainter extends CustomPainter {
     // Draw pirate decorations
     _drawText(canvas, '☠️', center.translate(-radius + 15, -radius + 15), 24);
     _drawText(canvas, '⚓', center.translate(-radius + 10, radius - 20), 18);
+  }
+
+  void _drawWoodBackground(Canvas canvas, Size size) {
+    // Draw wooden texture image if loaded
+    if (woodTexture != null) {
+      // Draw the wood texture with brightness/contrast adjustment
+      final srcRect = Rect.fromLTWH(0, 0, woodTexture!.width.toDouble(), woodTexture!.height.toDouble());
+      final dstRect = Rect.fromLTWH(0, 0, size.width, size.height);
+      
+      canvas.drawImageRect(
+        woodTexture!,
+        srcRect,
+        dstRect,
+        Paint()
+          ..colorFilter = ColorFilter.matrix([
+            0.5, 0, 0, 0, 0,        // Red: brightness 0.5
+            0, 0.5, 0, 0, 0,        // Green: brightness 0.5
+            0, 0, 0.5, 0, 0,        // Blue: brightness 0.5
+            0, 0, 0, 1, 0,          // Alpha: unchanged
+          ]),
+      );
+    } else {
+      // Fallback to solid dark brown if texture not loaded
+      canvas.drawRect(
+        Rect.fromLTWH(0, 0, size.width, size.height),
+        Paint()..color = const Color(0xFF3d2817),
+      );
+    }
+
+    // Draw dark overlay gradient (amber-950/40 to stone-950/40)
+    canvas.drawRect(
+      Rect.fromLTWH(0, 0, size.width, size.height),
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            const Color(0xFF78350f).withOpacity(0.4),  // amber-950/40
+            const Color(0xFF292524).withOpacity(0.4),  // stone-950/40
+          ],
+        ).createShader(Rect.fromLTWH(0, 0, size.width, size.height)),
+    );
   }
 
   void _drawCardinalDirections(Canvas canvas, Offset center, double radius) {
@@ -375,5 +444,7 @@ class CompassPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(CompassPainter oldDelegate) => oldDelegate.rotation != rotation;
+  bool shouldRepaint(CompassPainter oldDelegate) => 
+      oldDelegate.rotation != rotation || 
+      oldDelegate.woodTexture != woodTexture;
 }
