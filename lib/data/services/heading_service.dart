@@ -19,11 +19,11 @@ class HeadingService {
   StreamSubscription<MagnetometerEvent>? _magnetometerSubscription;
   StreamSubscription<AccelerometerEvent>? _accelerometerSubscription;
 
-  // Jitter filtering: ignore heading changes < 5 degrees
-  static const double _jitterThresholdDegrees = 5.0;
+  // Jitter filtering: ignore heading changes < 3 degrees (was 5°, reduced for responsiveness)
+  static const double _jitterThresholdDegrees = 3.0;
 
-  // Smoothing window: average heading over last 500ms for < 500ms lag
-  static const Duration _smoothingWindow = Duration(milliseconds: 250);
+  // Smoothing window: average heading over last 150ms for faster responsiveness
+  static const Duration _smoothingWindow = Duration(milliseconds: 150);
 
   double? _lastHeading;
   double? _lastAccelX, _lastAccelY, _lastAccelZ;

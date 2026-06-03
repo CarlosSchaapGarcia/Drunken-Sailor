@@ -16,8 +16,8 @@ class _CompassViewState extends ConsumerState<CompassView>
   late Animation<double> _rotationAnimation;
   double _targetRotation = 0;
   double _currentRotation = 0;
-  bool _isInitialized = false;
   bool _isSensorActive = false;
+  VoidCallback? _animationListener;
 
   @override
   void initState() {
@@ -70,6 +70,11 @@ class _CompassViewState extends ConsumerState<CompassView>
 
     _targetRotation = _currentRotation + delta;
 
+    // Remove old listener before adding new one
+    if (_animationListener != null) {
+      _rotationAnimation.removeListener(_animationListener!);
+    }
+
     _rotationAnimation = Tween<double>(
       begin: _currentRotation,
       end: _targetRotation,
@@ -77,23 +82,24 @@ class _CompassViewState extends ConsumerState<CompassView>
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
 
-    _animationController.forward(from: 0.0);
-
-    _rotationAnimation.addListener(() {
+    // Create and store listener reference
+    _animationListener = () {
       if (mounted) {
         setState(() {
           _currentRotation = _rotationAnimation.value % 360;
         });
       }
-    });
-
-    if (!_isInitialized) {
-      setState(() => _isInitialized = true);
-    }
+    };
+    
+    _rotationAnimation.addListener(_animationListener!);
+    _animationController.forward(from: 0.0);
   }
 
   @override
   void dispose() {
+    if (_animationListener != null) {
+      _rotationAnimation.removeListener(_animationListener!);
+    }
     WidgetsBinding.instance.removeObserver(this);
     _animationController.dispose();
     final headingService = ref.read(headingServiceProvider);
@@ -114,10 +120,8 @@ class _CompassViewState extends ConsumerState<CompassView>
           height: 400,
           child: needleAsync.when(
             data: (rotation) {
-              // Update animation when bearing changes
-              if (_isInitialized) {
-                _updateRotation(rotation);
-              }
+              // Update animation when bearing changes (including first value)
+              _updateRotation(rotation);
 
               return CustomPaint(
                 painter: CompassPainter(rotation: _currentRotation),
