@@ -14,10 +14,10 @@ class VibrationService {
   int _lastAmplitude = 0;
 
   // Thresholds (meters)
-  static const int threshold50m = 50000;
-  static const int threshold20m = 20000;
-  static const int threshold10m = 10000;
-  static const int stopThreshold = 51000;
+  static const int threshold50m = 50; // 50 meters
+  static const int threshold20m = 20; // 20 meters
+  static const int threshold10m = 10; // 10 meters
+  static const int stopThreshold = 51; // >50m stops vibration
 
   Future<void> updateForDistance(int distanceMeters) async {
     if (distanceMeters > stopThreshold) {

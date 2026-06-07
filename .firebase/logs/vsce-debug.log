@@ -350,3 +350,87 @@ I0602 21:39:12.796788   14976 dev.go:104] Listening on address (HTTP + gRPC): 12
 [error] [Firebase Plugin] error:  {}
 [debug] [2026-06-02T19:39:13.353Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects 200
 [debug] [2026-06-02T19:39:13.353Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects [omitted]
+[info] [Firebase Plugin] Stopping SQL Connect toolkit
+[warn] !  SQL Connect Emulator has exited upon receiving signal: SIGINT 
+[debug] [2026-06-05T11:07:30.435Z] [Firebase Plugin] Activating Firebase extension.
+[debug] [2026-06-05T11:07:36.456Z] [Firebase Plugin] requireAuthWrapper
+[debug] [2026-06-05T11:07:36.457Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-06-05T11:07:36.458Z] > authorizing via signed-in user (antonreunov@gmail.com)
+[debug] [2026-06-05T11:07:36.463Z] Checked if tokens are valid: false, expires at: 1780432751786
+[debug] [2026-06-05T11:07:36.463Z] Checked if tokens are valid: false, expires at: 1780432751786
+[debug] [2026-06-05T11:07:36.463Z] > refreshing access token with scopes: []
+[debug] [2026-06-05T11:07:36.465Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2026-06-05T11:07:36.465Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-06-05T11:07:36.591Z] [Firebase Plugin] VSCode notification server listening on port 40001
+[info] [Firebase Plugin] Starting SQL Connect toolkit (version 3.4.9) on port 50001
+[debug] [2026-06-05T11:07:38.246Z] I0605 13:07:38.198830   25940 control.go:100] [projects/emulator/locations/emulator/services/drunken-sailor-f6905-service 3f4a] UpdateResources(): done
+Main schema: sources: schema\schema.gql [0B] 
+Connector "example": sources: 
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0605 13:07:38.198830   25940 control.go:100] [projects/emulator/locations/emulator/services/drunken-sailor-f6905-service 3f4a] UpdateResources(): done\nMain schema: sources: schema\\schema.gql [0B] \nConnector \"example\": sources: \n"}}
+[debug] [2026-06-05T11:07:38.249Z] Ignoring unsupported arg: auto_download {"metadata":{"emulator":{"name":"dataconnect"},"message":"Ignoring unsupported arg: auto_download"}}
+[debug] [2026-06-05T11:07:38.274Z] Ignoring unsupported arg: port {"metadata":{"emulator":{"name":"dataconnect"},"message":"Ignoring unsupported arg: port"}}
+[debug] [2026-06-05T11:07:38.274Z] Starting SQL Connect Emulator with command {"binary":"C:\\Users\\Anton Reunov\\.cache\\firebase\\emulators\\dataconnect-emulator-3.4.9.exe","args":["--logtostderr","-v=2","dev","--listen=localhost:50001","--config_dir=c:\\Users\\Anton Reunov\\Programming\\Drunken-Sailor\\dataconnect","--enable_output_schema_extensions=true","--enable_output_generated_sdk=true"],"optionalArgs":["listen","config_dir","enable_output_schema_extensions","enable_output_generated_sdk"],"joinArgs":true,"shell":false,"port":9399} {"metadata":{"emulator":{"name":"dataconnect"},"message":"Starting SQL Connect Emulator with command {\"binary\":\"C:\\\\Users\\\\Anton Reunov\\\\.cache\\\\firebase\\\\emulators\\\\dataconnect-emulator-3.4.9.exe\",\"args\":[\"--logtostderr\",\"-v=2\",\"dev\",\"--listen=localhost:50001\",\"--config_dir=c:\\\\Users\\\\Anton Reunov\\\\Programming\\\\Drunken-Sailor\\\\dataconnect\",\"--enable_output_schema_extensions=true\",\"--enable_output_generated_sdk=true\"],\"optionalArgs\":[\"listen\",\"config_dir\",\"enable_output_schema_extensions\",\"enable_output_generated_sdk\"],\"joinArgs\":true,\"shell\":false,\"port\":9399}"}}
+[info] i  dataconnect: SQL Connect Emulator logging to dataconnect-debug.log {"metadata":{"emulator":{"name":"dataconnect"},"message":"SQL Connect Emulator logging to \u001b[1mdataconnect-debug.log\u001b[22m"}}
+[debug] [2026-06-05T11:07:38.346Z] I0605 13:07:38.325317   29552 load.go:31] Reloading schema and connectors...
+I0605 13:07:38.329543   29552 control.go:100] [projects/emulator/locations/emulator/services/drunken-sailor-f6905-service c4ae] UpdateResources(): done
+Main schema: sources: schema\schema.gql [0B] 
+Connector "example": sources: 
+E0605 13:07:38.332603   29552 load.go:95] Errors generating SDK: [connector "example"]: invalid Data Connect Connector no query found in connector
+I0605 13:07:38.333610   29552 collector.go:107] schema extensions wrote into "c:\\Users\\Anton Reunov\\Programming\\Drunken-Sailor\\dataconnect\\.dataconnect\\schema"
+Generated sources: prelude.gql [84995B] 
+I0605 13:07:38.333610   29552 load.go:109] Finished reloading
+I0605 13:07:38.344530   29552 dev.go:104] Listening on address (HTTP + gRPC): 127.0.0.1:50001
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0605 13:07:38.325317   29552 load.go:31] Reloading schema and connectors...\nI0605 13:07:38.329543   29552 control.go:100] [projects/emulator/locations/emulator/services/drunken-sailor-f6905-service c4ae] UpdateResources(): done\nMain schema: sources: schema\\schema.gql [0B] \nConnector \"example\": sources: \nE0605 13:07:38.332603   29552 load.go:95] Errors generating SDK: [connector \"example\"]: invalid Data Connect Connector no query found in connector\nI0605 13:07:38.333610   29552 collector.go:107] schema extensions wrote into \"c:\\\\Users\\\\Anton Reunov\\\\Programming\\\\Drunken-Sailor\\\\dataconnect\\\\.dataconnect\\\\schema\"\nGenerated sources: prelude.gql [84995B] \nI0605 13:07:38.333610   29552 load.go:109] Finished reloading\nI0605 13:07:38.344530   29552 dev.go:104] Listening on address (HTTP + gRPC): 127.0.0.1:50001\n"}}
+[error] [Firebase Plugin] error:  {}
+[debug] [2026-06-05T11:07:41.507Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2026-06-05T11:07:41.511Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-06-05T11:07:41.531Z] [Firebase Plugin] User found:  antonreunov@gmail.com
+[info] [Firebase Plugin] (Core:Project) New user detected, fetching projects
+[debug] [2026-06-05T11:07:41.534Z] Checked if tokens are valid: true, expires at: 1780661260511
+[debug] [2026-06-05T11:07:41.535Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects pageSize=1000
+[debug] [2026-06-05T11:07:42.252Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects 200
+[debug] [2026-06-05T11:07:42.253Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects [omitted]
+[info] [Firebase Plugin] Stopping SQL Connect toolkit
+[warn] !  SQL Connect Emulator has exited upon receiving signal: SIGINT 
+[debug] [2026-06-07T10:29:43.871Z] [Firebase Plugin] Activating Firebase extension.
+[debug] [2026-06-07T10:29:45.210Z] [Firebase Plugin] requireAuthWrapper
+[debug] [2026-06-07T10:29:45.211Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-06-07T10:29:45.211Z] > authorizing via signed-in user (antonreunov@gmail.com)
+[debug] [2026-06-07T10:29:45.213Z] Checked if tokens are valid: true, expires at: 1780831764271
+[debug] [2026-06-07T10:29:45.213Z] Checked if tokens are valid: true, expires at: 1780831764271
+[debug] [2026-06-07T10:29:45.213Z] [Firebase Plugin] User found:  antonreunov@gmail.com
+[info] [Firebase Plugin] (Core:Project) New user detected, fetching projects
+[debug] [2026-06-07T10:29:45.214Z] Checked if tokens are valid: true, expires at: 1780831764271
+[debug] [2026-06-07T10:29:45.215Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects pageSize=1000
+[debug] [2026-06-07T10:29:45.220Z] [Firebase Plugin] VSCode notification server listening on port 40001
+[info] [Firebase Plugin] Starting SQL Connect toolkit (version 3.4.10) on port 50001
+[info] i  dataconnect: downloading dataconnect-emulator-3.4.10.exe... {"metadata":{"emulator":{"name":"dataconnect"},"message":"downloading dataconnect-emulator-3.4.10.exe..."}}
+[debug] [2026-06-07T10:29:45.452Z] >>> [apiv2][query] GET https://storage.googleapis.com/firemat-preview-drop/emulator/dataconnect-emulator-windows-amd64-v3.4.10 
+[debug] [2026-06-07T10:29:45.731Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects 200
+[debug] [2026-06-07T10:29:45.731Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects [omitted]
+[debug] [2026-06-07T10:29:45.750Z] <<< [apiv2][status] GET https://storage.googleapis.com/firemat-preview-drop/emulator/dataconnect-emulator-windows-amd64-v3.4.10 200
+[debug] [2026-06-07T10:29:45.750Z] <<< [apiv2][body] GET https://storage.googleapis.com/firemat-preview-drop/emulator/dataconnect-emulator-windows-amd64-v3.4.10 [stream]
+[info] i  dataconnect: Removing outdated emulator files: dataconnect-emulator-3.4.9.exe {"metadata":{"emulator":{"name":"dataconnect"},"message":"Removing outdated emulator files: dataconnect-emulator-3.4.9.exe"}}
+[debug] [2026-06-07T10:29:50.161Z] I0607 12:29:50.156804   12316 control.go:100] [projects/emulator/locations/emulator/services/drunken-sailor-f6905-service 6ac7] UpdateResources(): done
+Main schema: sources: schema\schema.gql [0B] 
+Connector "example": sources: 
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0607 12:29:50.156804   12316 control.go:100] [projects/emulator/locations/emulator/services/drunken-sailor-f6905-service 6ac7] UpdateResources(): done\nMain schema: sources: schema\\schema.gql [0B] \nConnector \"example\": sources: \n"}}
+[debug] [2026-06-07T10:29:50.162Z] Ignoring unsupported arg: auto_download {"metadata":{"emulator":{"name":"dataconnect"},"message":"Ignoring unsupported arg: auto_download"}}
+[debug] [2026-06-07T10:29:50.162Z] Ignoring unsupported arg: port {"metadata":{"emulator":{"name":"dataconnect"},"message":"Ignoring unsupported arg: port"}}
+[debug] [2026-06-07T10:29:50.162Z] Starting SQL Connect Emulator with command {"binary":"C:\\Users\\Anton Reunov\\.cache\\firebase\\emulators\\dataconnect-emulator-3.4.10.exe","args":["--logtostderr","-v=2","dev","--listen=localhost:50001","--config_dir=c:\\Users\\Anton Reunov\\Programming\\Drunken-Sailor\\dataconnect","--enable_output_schema_extensions=true","--enable_output_generated_sdk=true"],"optionalArgs":["listen","config_dir","enable_output_schema_extensions","enable_output_generated_sdk"],"joinArgs":true,"shell":false,"port":9399} {"metadata":{"emulator":{"name":"dataconnect"},"message":"Starting SQL Connect Emulator with command {\"binary\":\"C:\\\\Users\\\\Anton Reunov\\\\.cache\\\\firebase\\\\emulators\\\\dataconnect-emulator-3.4.10.exe\",\"args\":[\"--logtostderr\",\"-v=2\",\"dev\",\"--listen=localhost:50001\",\"--config_dir=c:\\\\Users\\\\Anton Reunov\\\\Programming\\\\Drunken-Sailor\\\\dataconnect\",\"--enable_output_schema_extensions=true\",\"--enable_output_generated_sdk=true\"],\"optionalArgs\":[\"listen\",\"config_dir\",\"enable_output_schema_extensions\",\"enable_output_generated_sdk\"],\"joinArgs\":true,\"shell\":false,\"port\":9399}"}}
+[info] i  dataconnect: SQL Connect Emulator logging to dataconnect-debug.log {"metadata":{"emulator":{"name":"dataconnect"},"message":"SQL Connect Emulator logging to \u001b[1mdataconnect-debug.log\u001b[22m"}}
+[debug] [2026-06-07T10:29:50.186Z] I0607 12:29:50.186576   10352 load.go:31] Reloading schema and connectors...
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0607 12:29:50.186576   10352 load.go:31] Reloading schema and connectors...\n"}}
+[debug] [2026-06-07T10:29:50.188Z] I0607 12:29:50.188682   10352 control.go:100] [projects/emulator/locations/emulator/services/drunken-sailor-f6905-service eba2] UpdateResources(): done
+Main schema: sources: schema\schema.gql [0B] 
+Connector "example": sources: 
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0607 12:29:50.188682   10352 control.go:100] [projects/emulator/locations/emulator/services/drunken-sailor-f6905-service eba2] UpdateResources(): done\nMain schema: sources: schema\\schema.gql [0B] \nConnector \"example\": sources: \n"}}
+[debug] [2026-06-07T10:29:50.191Z] E0607 12:29:50.191311   10352 load.go:95] Errors generating SDK: [connector "example"]: invalid Data Connect Connector no query found in connector
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"E0607 12:29:50.191311   10352 load.go:95] Errors generating SDK: [connector \"example\"]: invalid Data Connect Connector no query found in connector\n"}}
+[debug] [2026-06-07T10:29:50.191Z] I0607 12:29:50.192160   10352 collector.go:107] schema extensions wrote into "c:\\Users\\Anton Reunov\\Programming\\Drunken-Sailor\\dataconnect\\.dataconnect\\schema"
+Generated sources: prelude.gql [84995B] 
+I0607 12:29:50.192160   10352 load.go:109] Finished reloading
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0607 12:29:50.192160   10352 collector.go:107] schema extensions wrote into \"c:\\\\Users\\\\Anton Reunov\\\\Programming\\\\Drunken-Sailor\\\\dataconnect\\\\.dataconnect\\\\schema\"\nGenerated sources: prelude.gql [84995B] \nI0607 12:29:50.192160   10352 load.go:109] Finished reloading\n"}}
+[debug] [2026-06-07T10:29:50.198Z] I0607 12:29:50.197723   10352 dev.go:104] Listening on address (HTTP + gRPC): 127.0.0.1:50001
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0607 12:29:50.197723   10352 dev.go:104] Listening on address (HTTP + gRPC): 127.0.0.1:50001\n"}}
+[error] [Firebase Plugin] error:  {}

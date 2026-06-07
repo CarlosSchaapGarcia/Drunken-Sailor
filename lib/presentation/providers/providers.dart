@@ -42,21 +42,41 @@ final locationStreamProvider = StreamProvider<Position>((ref) {
 });
 
 // -- Nearest bar distance (meters; null = no bars nearby, negative = all closed) --
+class NearestBarInfo {
+  final Bar bar;
+  // Positive = open distance in meters; Negative = closed (distance negative)
+  final int distanceMeters;
 
-final nearestBarProvider = FutureProvider.autoDispose<int?>((ref) async {
+  NearestBarInfo({required this.bar, required this.distanceMeters});
+}
+
+// -- Nearest bar info (bar + distance meters; null = no bars nearby) --
+final nearestBarProvider = FutureProvider.autoDispose<NearestBarInfo?>((ref) async {
   // Waits for the first GPS position — keeps provider in loading state until then.
   final pos = await ref.watch(locationStreamProvider.future);
 
   final repo = ref.read(barRepositoryProvider);
-  // findNearbyBars falls back to getAllBars when geohash returns empty,
-  // which throws BarServiceException when truly offline with no cache.
-  final nearby = await repo.findNearbyBars(pos.latitude, pos.longitude);
-  if (nearby.isEmpty) return null;
+  // Fetch all bars (uses cache when available) and compute nearest locally.
+  final all = await repo.getAllBars();
+  if (all.isEmpty) return null;
 
   final now = DateTime.now();
-  final open = nearby.where((b) => b.isOpenAt(now)).toList();
-  if (open.isNotEmpty) return open.first.distanceTo(pos.latitude, pos.longitude);
-  return -nearby.first.distanceTo(pos.latitude, pos.longitude);
+  // Prefer open bars; fall back to any bar if none open
+  final open = all.where((b) => b.isOpenAt(now)).toList();
+  final candidates = open.isNotEmpty ? open : all;
+
+  // Find nearest candidate
+  Bar nearest = candidates.first;
+  var bestDist = nearest.distanceTo(pos.latitude, pos.longitude);
+  for (final b in candidates.skip(1)) {
+    final d = b.distanceTo(pos.latitude, pos.longitude);
+    if (d < bestDist) {
+      nearest = b;
+      bestDist = d;
+    }
+  }
+
+  return NearestBarInfo(bar: nearest, distanceMeters: open.isNotEmpty ? bestDist : -bestDist);
 });
 
 // -- Vibration trigger on distance change --
@@ -65,14 +85,14 @@ final vibrationTriggerProvider = StreamProvider.autoDispose<void>((ref) {
   final vibrationService = ref.watch(vibrationServiceProvider);
 
   return nearestBarAsync.maybeWhen(
-    data: (distance) {
-      if (distance == null) {
+    data: (info) {
+      if (info == null) {
         vibrationService.stop();
         return Stream.value(null);
       }
 
-      final absDistance = distance.abs();
-      
+      final absDistance = info.distanceMeters.abs();
+
       // Update vibration based on distance
       if (absDistance <= 50000) {
         vibrationService.updateForDistance(absDistance);
@@ -94,23 +114,28 @@ final openBarPositionsProvider = StreamProvider.autoDispose<List<BarRelativePosi
 
   return locationStream.asyncMap((pos) async {
     final repo = ref.read(barRepositoryProvider);
-    final nearby = await repo.findNearbyBars(
-      pos.latitude,
-      pos.longitude,
-      radiusKm: 2.0,
-      limit: null,
-    );
+    // Fetch all bars (uses cache) and compute positions locally so radar shows
+    // the same dataset as other views even if geohash tiles are missing.
+    final all = await repo.getAllBars();
 
     final now = DateTime.now();
     final heading = pos.heading.isFinite ? pos.heading : 0.0;
 
-    return nearby
+    // Debug log counts
+    // ignore: avoid_print
+    print('[Radar] position=${pos.latitude},${pos.longitude} — totalBars=${all.length}');
+
+    // Use a larger maxRangeMeters so radar shows bars a few km away
+    const maxRangeMeters = 5000.0;
+
+    return all
         .where((bar) => bar.isOpenAt(now))
         .map((bar) => BarRelativePosition.fromBar(
               bar,
               pos.latitude,
               pos.longitude,
               heading,
+              maxRangeMeters: maxRangeMeters,
             ))
         .where((position) => position.visible)
         .toList();

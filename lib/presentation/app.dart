@@ -236,7 +236,7 @@ class _DrunkenSailorAppState extends ConsumerState<DrunkenSailorApp>
     );
   }
 
-  Widget _buildDistanceIndicator(AsyncValue<int?> nearestAsync) {
+  Widget _buildDistanceIndicator(AsyncValue<dynamic> nearestAsync) {
     return Container(
       color: const Color(0xFF1e293b).withOpacity(0.5),
       padding: const EdgeInsets.symmetric(vertical: 12),
@@ -246,20 +246,21 @@ class _DrunkenSailorAppState extends ConsumerState<DrunkenSailorApp>
           message: 'Could not find nearby bars',
           onRetry: () => ref.invalidate(nearestBarProvider),
         ),
-        data: (distM) {
-          if (distM == null) {
+        data: (info) {
+          if (info == null) {
             return const Center(
               child: Text('Locating...', style: TextStyle(fontSize: 14, color: Color(0xFF94a3b8))),
             );
           }
-          final isOpen = distM >= 0;
-          final abs = distM.abs();
+          final isOpen = info.distanceMeters >= 0;
+          final abs = info.distanceMeters.abs();
           final label = abs < 1000 ? '${abs}m' : '${(abs / 1000).toStringAsFixed(1)}km';
+          final title = isOpen ? '${info.bar.name} in' : 'All closed, nearest';
           return Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                isOpen ? 'Destination in' : 'All closed, nearest',
+                title,
                 style: const TextStyle(fontSize: 14, color: Color(0xFF94a3b8)),
               ),
               const SizedBox(width: 16),
