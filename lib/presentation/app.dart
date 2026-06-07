@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:drunken_sailor/data/repositories/firestore_bar_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
@@ -79,15 +80,15 @@ class _DrunkenSailorAppState extends ConsumerState<DrunkenSailorApp>
   }
 
   Future<void> _checkFirebase() async {
-    try {
-      final bars = await ref.read(barRepositoryProvider).getAllBars();
-      // ignore: avoid_print
-      print('[Firebase] Connected — ${bars.length} bars loaded');
-    } catch (e) {
-      // ignore: avoid_print
-      print('[Firebase] Connection failed: $e');
-    }
+  try {
+    final repo = ref.read(barRepositoryProvider) as FirestoreBarRepository;
+    await repo.clearCache(); // ← clear stale cache
+    final bars = await repo.getAllBars();
+    print('[Firebase] Connected — ${bars.length} bars loaded');
+  } catch (e) {
+    print('[Firebase] Connection failed: $e');
   }
+}
 
   Future<void> _initLocation() async {
     try {
@@ -116,6 +117,9 @@ class _DrunkenSailorAppState extends ConsumerState<DrunkenSailorApp>
     }
     final service = ref.read(locationServiceProvider);
     await service.start();
+
+    ref.read(openBarPositionsProvider);
+
     service.positionStream.listen((pos) {
       final now = DateTime.now();
       if (_lastBarFetch == null || now.difference(_lastBarFetch!) >= _barFetchInterval) {
@@ -172,10 +176,10 @@ class _DrunkenSailorAppState extends ConsumerState<DrunkenSailorApp>
             child: PageView(
               controller: _pageController,
               onPageChanged: _onPageChanged,
-              children: const [
-                Center(child: CompassView()),
-                Center(child: RadarView()),
-                Center(child: GeigerView()),
+              children: [
+                const Center(child: CompassView()),
+                const Center(child: RadarView()),
+                const Center(child: GeigerView()),
               ],
             ),
           ),

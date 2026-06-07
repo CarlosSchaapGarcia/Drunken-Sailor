@@ -132,4 +132,6 @@ class FirestoreBarRepository implements BarRepository {
       return [];
     }
   }
+
+  Future<void> clearCache() => _cache.clear();
 }

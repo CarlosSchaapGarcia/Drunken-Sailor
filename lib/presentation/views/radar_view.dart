@@ -11,8 +11,12 @@ class RadarView extends ConsumerStatefulWidget {
   ConsumerState<RadarView> createState() => _RadarViewState();
 }
 
-class _RadarViewState extends ConsumerState<RadarView> with SingleTickerProviderStateMixin {
+class _RadarViewState extends ConsumerState<RadarView>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
+
+  final Map<String, double> _lastPingAngle = {};
+  final Map<String, double> _pingProgress = {};
 
   @override
   void initState() {
@@ -23,18 +27,48 @@ class _RadarViewState extends ConsumerState<RadarView> with SingleTickerProvider
     )..repeat();
   }
 
+  void _checkPings(List<BarRelativePosition> targets) {
+    final sweep = _controller.value * 360;
+
+    for (final target in targets) {
+      final barAngle = target.angleDegrees;
+      final id = target.bar.id;
+
+      final diff = ((sweep - barAngle) + 360) % 360;
+      if (diff < 3.0 || diff > 357.0) {
+        if (!_lastPingAngle.containsKey(id) ||
+            ((_lastPingAngle[id]! - sweep).abs() > 10)) {
+          _lastPingAngle[id] = sweep;
+          _pingProgress[id] = 0.0;
+        }
+      }
+
+      if (_pingProgress.containsKey(id)) {
+        _pingProgress[id] = _pingProgress[id]! + 0.008;
+        if (_pingProgress[id]! >= 1.0) {
+          _pingProgress.remove(id);
+          _lastPingAngle.remove(id);
+        }
+      }
+    }
+  }
+
+  List<BarRelativePosition> _currentTargets = [];
+
   @override
   void dispose() {
+    _controller.removeListener(() => _checkPings(_currentTargets));
     _controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final openBarPositions = ref.watch(openBarPositionsProvider).maybeWhen<List<BarRelativePosition>>(
-          data: (bars) => bars,
-          orElse: () => const [],
-        );
+    final asyncPositions = ref.watch(openBarPositionsProvider);
+    _currentTargets = asyncPositions.maybeWhen(
+      data: (bars) => bars,
+      orElse: () => const [],
+    );
 
     return SingleChildScrollView(
       child: Padding(
@@ -45,10 +79,12 @@ class _RadarViewState extends ConsumerState<RadarView> with SingleTickerProvider
           child: AnimatedBuilder(
             animation: _controller,
             builder: (context, child) {
+              _checkPings(_currentTargets);
               return CustomPaint(
                 painter: RadarPainter(
                   sweepAngle: _controller.value * 360,
-                  targets: openBarPositions,
+                  targets: _currentTargets,
+                  pingProgress: Map.from(_pingProgress),
                 ),
               );
             },
@@ -62,30 +98,47 @@ class _RadarViewState extends ConsumerState<RadarView> with SingleTickerProvider
 class RadarPainter extends CustomPainter {
   final double sweepAngle;
   final List<BarRelativePosition> targets;
+  final Map<String, double> pingProgress;
 
-  RadarPainter({required this.sweepAngle, this.targets = const []});
+  RadarPainter({
+    required this.sweepAngle,
+    this.targets = const [],
+    this.pingProgress = const {},
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = size.width / 2 - 20;
+    _drawBackground(canvas, center, radius);
+    _drawGrid(canvas, center, radius);
+    _drawText(canvas, 'N', center.translate(0, -radius + 12), 14);
+    _drawSweepGradient(canvas, center, radius, sweepAngle);
+    _drawSweepLine(canvas, center, radius, sweepAngle);
+    _drawScanlines(canvas, size);
+    
 
-    // Background circle
+    for (final target in targets) {
+      _drawTarget(canvas, center, radius, target);
+      final progress = pingProgress[target.bar.id];
+      if (progress != null) {
+        _drawPingRing(canvas, center, radius, target, progress);
+      }
+    }
+
+    _drawCenterDot(canvas, center);
+  }
+
+  void _drawBackground(Canvas canvas, Offset center, double radius) {
     canvas.drawCircle(
       center,
       radius,
       Paint()
         ..shader = RadialGradient(
-          colors: [
-            const Color(0xFF064e3b),
-            const Color(0xFF0f172a),
-          ],
-          stops: const [0.0, 1.0],
+          colors: [const Color(0xFF064e3b), const Color(0xFF0f172a)],
         ).createShader(Rect.fromCircle(center: center, radius: radius))
         ..style = PaintingStyle.fill,
     );
-
-    // Border
     canvas.drawCircle(
       center,
       radius,
@@ -94,196 +147,136 @@ class RadarPainter extends CustomPainter {
         ..strokeWidth = 4
         ..style = PaintingStyle.stroke,
     );
+  }
 
-    // Concentric Circles
+  void _drawGrid(Canvas canvas, Offset center, double radius) {
+    final paint = Paint()
+      ..color = const Color(0xFF047857).withOpacity(0.3)
+      ..strokeWidth = 1
+      ..style = PaintingStyle.stroke;
+
     for (int i = 1; i <= 3; i++) {
-      final circleRadius = radius * (0.6 + (i * 0.1));
-      canvas.drawCircle(
-        center,
-        circleRadius,
-        Paint()
-          ..color = const Color(0xFF047857).withOpacity(0.3)
-          ..strokeWidth = 1
-          ..style = PaintingStyle.stroke,
-      );
+      canvas.drawCircle(center, radius * (0.25 * i), paint);
     }
 
-    // Grid Lines (Cross)
-    canvas.drawLine(
-      Offset(center.dx - radius, center.dy),
-      Offset(center.dx + radius, center.dy),
-      Paint()
-        ..color = const Color(0xFF047857).withOpacity(0.3)
-        ..strokeWidth = 1,
-    );
-    canvas.drawLine(
-      Offset(center.dx, center.dy - radius),
-      Offset(center.dx, center.dy + radius),
-      Paint()
-        ..color = const Color(0xFF047857).withOpacity(0.3)
-        ..strokeWidth = 1,
-    );
+    canvas.drawLine(Offset(center.dx - radius, center.dy),
+        Offset(center.dx + radius, center.dy), paint);
+    canvas.drawLine(Offset(center.dx, center.dy - radius),
+        Offset(center.dx, center.dy + radius), paint);
+  }
 
-    // Sweep Line
-    final sweepRad = (sweepAngle - 90) * math.pi / 180;
-    final sweepEndX = center.dx + radius * math.cos(sweepRad);
-    final sweepEndY = center.dy + radius * math.sin(sweepRad);
-
+  void _drawSweepLine(Canvas canvas, Offset center, double radius, double angle) {
+    final rad = (angle - 90) * math.pi / 180;
     canvas.drawLine(
       center,
-      Offset(sweepEndX, sweepEndY),
+      Offset(center.dx + radius * math.cos(rad),
+          center.dy + radius * math.sin(rad)),
       Paint()
-        ..color = const Color(0xFF10b981).withOpacity(0.8)
+        ..color = const Color(0xFF10b981).withOpacity(0.9)
         ..strokeWidth = 2,
     );
-
-    // Sweep Gradient
-    _drawSweepGradient(canvas, center, radius, sweepAngle);
-
-    // Target Blips
-    _drawBlip(canvas, center, radius, 0.35, 0.60, 3, true); // Larger blip with ping
-    _drawBlip(canvas, center, radius, 0.65, 0.40, 2, false); // Smaller blip
-
-    // Center Dot
-    canvas.drawCircle(
-      center,
-      3,
-      Paint()
-        ..color = const Color(0xFF10b981)
-        ..style = PaintingStyle.fill,
-    );
-
-    canvas.drawCircle(
-      center,
-      3,
-      Paint()
-        ..color = const Color(0xFF10b981)
-        ..strokeWidth = 1
-        ..style = PaintingStyle.stroke,
-    );
-
-    // Open bars on radar
-    for (final target in targets) {
-      _drawTarget(canvas, center, radius, target);
-    }
-
-    // Submarine Periscope Icon
-    _drawText(canvas, '🔭', center.translate(radius - 25, -radius + 20), 20);
-
-    // Wave Icon
-    _drawText(canvas, '🌊', center.translate(-radius + 20, radius - 20), 18);
-
-    // Scanline effect (drawn on top)
-    _drawScanlines(canvas, size);
   }
 
-  void _drawBlip(Canvas canvas, Offset center, double radius, double relativeRadius,
-      double angle, double size, bool withPing) {
-    final rad = (angle * 360 - 90) * math.pi / 180;
-    final x = center.dx + (radius * relativeRadius) * math.cos(rad);
-    final y = center.dy + (radius * relativeRadius) * math.sin(rad);
+void _drawSweepGradient(Canvas canvas, Offset center, double radius, double angle) {
+  final sweepRad = (angle - 90) * math.pi / 180;
+  const trailDegrees = 60.0;
+  const steps = 20;
 
-    canvas.drawCircle(
-      Offset(x, y),
-      size,
+  for (int i = 0; i < steps; i++) {
+    final t = i / steps;
+    final opacity = t * 0.35;
+    final startAngle = sweepRad - (trailDegrees * (1.0 - t)) * math.pi / 180;
+    final sweepAngle = (trailDegrees / steps) * math.pi / 180;
+
+    final rect = Rect.fromCircle(center: center, radius: radius);
+    final path = Path()
+      ..moveTo(center.dx, center.dy)
+      ..arcTo(rect, startAngle, sweepAngle, false)
+      ..close();
+
+    canvas.drawPath(
+      path,
       Paint()
-        ..color = const Color(0xFF10b981)
+        ..color = const Color(0xFF10b981).withOpacity(opacity)
         ..style = PaintingStyle.fill,
     );
-
-    canvas.drawCircle(
-      Offset(x, y),
-      size,
-      Paint()
-        ..color = const Color(0xFF10b981)
-        ..style = PaintingStyle.fill,
-    );
-
-    if (withPing) {
-      // Draw pulsing circle
-      canvas.drawCircle(
-        Offset(x, y),
-        size * 2,
-        Paint()
-          ..color = const Color(0xFF10b981).withOpacity(0.5)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1,
-      );
-    }
   }
-
-  void _drawSweepGradient(Canvas canvas, Offset center, double radius, double angle) {
-    final paint = Paint()
-      ..shader = SweepGradient(
-        startAngle: (angle - 90) * math.pi / 180,
-        endAngle: (angle - 90 + 60) * math.pi / 180,
-        colors: [
-          const Color(0xFF10b981).withOpacity(0),
-          const Color(0xFF10b981).withOpacity(0.4),
-          const Color(0xFF10b981).withOpacity(0),
-        ],
-      ).createShader(Rect.fromCircle(center: center, radius: radius));
-
-    canvas.drawCircle(center, radius, paint);
-  }
+}
 
   void _drawTarget(Canvas canvas, Offset center, double radius, BarRelativePosition target) {
     final distance = radius * target.distanceRatio;
-    final radians = (target.angleDegrees - 90) * math.pi / 180;
-    final targetOffset = Offset(
-      center.dx + distance * math.cos(radians),
-      center.dy + distance * math.sin(radians),
+    final rad = (target.angleDegrees - 90) * math.pi / 180;
+    final pos = Offset(
+      center.dx + distance * math.cos(rad),
+      center.dy + distance * math.sin(rad),
     );
 
-    canvas.drawCircle(
-      targetOffset,
-      6,
-      Paint()
-        ..color = const Color(0xFF10b981)
-        ..style = PaintingStyle.fill,
+    canvas.drawCircle(pos, 2,
+        Paint()..color = const Color(0xFF10b981)..style = PaintingStyle.fill);
+  }
+
+  void _drawPingRing(Canvas canvas, Offset center, double radius,
+      BarRelativePosition target, double progress) {
+    final distance = radius * target.distanceRatio;
+    final rad = (target.angleDegrees - 90) * math.pi / 180;
+    final pos = Offset(
+      center.dx + distance * math.cos(rad),
+      center.dy + distance * math.sin(rad),
     );
 
+    final ringRadius = 3.0 + progress * 27.0;
+    final opacity = (1.0 - progress).clamp(0.0, 1.0);
+
     canvas.drawCircle(
-      targetOffset,
-      10,
+      pos,
+      ringRadius,
       Paint()
-        ..color = const Color(0xFF10b981).withOpacity(0.15)
+        ..color = const Color(0xFF10b981).withOpacity(opacity * 0.8)
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 1,
+        ..strokeWidth = 1.5,
     );
+  }
 
-    _drawText(canvas, target.bar.name, targetOffset.translate(0, -14), 10);
+  void _drawCenterDot(Canvas canvas, Offset center) {
+    canvas.drawCircle(center, 3,
+      Paint()..color = const Color(0xFF10b981)..style = PaintingStyle.fill);
   }
 
   void _drawScanlines(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2 - 20;
+
+    canvas.save();
+    canvas.clipPath(Path()..addOval(Rect.fromCircle(center: center, radius: radius)));
+
     final paint = Paint()
-      ..color = Colors.black.withOpacity(0.1)
-      ..strokeWidth = 0;
+      ..color = Colors.black.withOpacity(0.08)
+      ..strokeWidth = 1;
 
     for (double y = 0; y < size.height; y += 4) {
-      canvas.drawLine(
-        Offset(0, y),
-        Offset(size.width, y),
-        paint,
-      );
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
     }
+
+    canvas.restore();
   }
 
   void _drawText(Canvas canvas, String text, Offset position, double fontSize) {
-    final textPainter = TextPainter(
+    final tp = TextPainter(
       text: TextSpan(
-        text: text,
-        style: TextStyle(fontSize: fontSize),
-      ),
+          text: text,
+          style: TextStyle(
+              fontSize: fontSize,
+              color: const Color(0xFF10b981),
+              fontWeight: FontWeight.w500)),
       textDirection: TextDirection.ltr,
     );
-    textPainter.layout();
-    textPainter.paint(
-      canvas,
-      position.translate(-textPainter.width / 2, -textPainter.height / 2),
-    );
+    tp.layout();
+    tp.paint(canvas, position.translate(-tp.width / 2, -tp.height / 2));
   }
 
   @override
-  bool shouldRepaint(RadarPainter oldDelegate) => oldDelegate.sweepAngle != sweepAngle;
+    bool shouldRepaint(RadarPainter oldDelegate) =>
+      oldDelegate.sweepAngle != sweepAngle ||
+      oldDelegate.targets != targets ||
+      oldDelegate.pingProgress != pingProgress;
 }

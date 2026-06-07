@@ -109,36 +109,26 @@ final vibrationTriggerProvider = StreamProvider.autoDispose<void>((ref) {
   );
 });
 
-final openBarPositionsProvider = StreamProvider.autoDispose<List<BarRelativePosition>>((ref) {
+final openBarPositionsProvider = StreamProvider<List<BarRelativePosition>>((ref) {
   final locationStream = ref.watch(locationStreamProvider.stream);
 
   return locationStream.asyncMap((pos) async {
     final repo = ref.read(barRepositoryProvider);
-    // Fetch all bars (uses cache) and compute positions locally so radar shows
-    // the same dataset as other views even if geohash tiles are missing.
     final all = await repo.getAllBars();
 
-    final now = DateTime.now();
-    final heading = pos.heading.isFinite ? pos.heading : 0.0;
+    final positions = all.map((bar) => BarRelativePosition.fromBar(
+          bar,
+          pos.latitude,
+          pos.longitude,
+          0.0,
+          maxRangeMeters: 5000,
+        )).toList();
 
-    // Debug log counts
-    // ignore: avoid_print
-    print('[Radar] position=${pos.latitude},${pos.longitude} — totalBars=${all.length}');
+    for (final p in positions) {
+      print('[Radar] ${p.bar.name}: distance=${p.distanceMeters.toInt()}m ratio=${p.distanceRatio.toStringAsFixed(2)} visible=${p.visible}');
+    }
 
-    // Use a larger maxRangeMeters so radar shows bars a few km away
-    const maxRangeMeters = 5000.0;
-
-    return all
-        .where((bar) => bar.isOpenAt(now))
-        .map((bar) => BarRelativePosition.fromBar(
-              bar,
-              pos.latitude,
-              pos.longitude,
-              heading,
-              maxRangeMeters: maxRangeMeters,
-            ))
-        .where((position) => position.visible)
-        .toList();
+    return positions.where((p) => p.visible).toList();
   });
 });
 

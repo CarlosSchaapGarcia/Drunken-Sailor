@@ -1,8 +1,8 @@
 const bars = [
   {
     name: "Eetcafé Sfeer",
-    latitude: 52.7869678,
-    longitude: 6.8881106,
+    latitude: 52.7869680,
+    longitude: 6.8943431,
     gay_friendly: false,
     hours: {
       monday:    null,
@@ -33,8 +33,8 @@ const bars = [
 
   {
     name: "Zwetser Eten & Drinken",
-    latitude: 52.7862986,
-    longitude: 6.8905768,
+    latitude: 52.7860290,
+    longitude: 6.8938940,
     gay_friendly: false,
     hours: {
       monday:    { open: "11:00", close: "23:00" },
@@ -50,7 +50,7 @@ const bars = [
   {
     name: "Thijs & Co",
     latitude: 52.7837996,
-    longitude: 6.8879797,
+    longitude: 6.8932986,
     gay_friendly: false,
     hours: {
       monday:    null,
@@ -65,24 +65,24 @@ const bars = [
 
   {
     name: "Tranquilo",
-    latitude: 52.7837996,
-    longitude: 6.8879797,
+    latitude: 52.7835907,
+    longitude: 6.8933327,
     gay_friendly: false,
     hours: null // temporarily closed
   },
 
   {
     name: "ATLAS Café",
-    latitude: 52.7837996,
-    longitude: 6.8879797,
+    latitude: 52.7825504,
+    longitude: 6.8916070,
     gay_friendly: false,
     hours: null // no hours available
   },
 
   {
     name: "Snooker & Pool Center Emmen",
-    latitude: 52.7837996,
-    longitude: 6.8879797,
+    latitude: 52.7828225,
+    longitude: 6.8933569,
     gay_friendly: false,
     hours: {
       monday:    { open: "18:00", close: "24:00" },
@@ -97,8 +97,8 @@ const bars = [
 
   {
     name: "Cafe De Gouden Leeuw Emmen",
-    latitude: 52.7837996,
-    longitude: 6.8879797,
+    latitude: 52.7824874,
+    longitude: 6.8956861,
     gay_friendly: false,
     hours: {
       monday:    { open: "17:00", close: "24:00" },
@@ -113,8 +113,8 @@ const bars = [
 
   {
     name: "Bar Hop 1.6",
-    latitude: 52.7837996,
-    longitude: 6.8879797,
+    latitude: 52.7823171,
+    longitude: 6.8954039,
     gay_friendly: false,
     hours: {
       monday:    null,
@@ -129,8 +129,8 @@ const bars = [
 
   {
     name: "MilaDo",
-    latitude: 52.7837996,
-    longitude: 6.8879797,
+    latitude: 52.7820961,
+    longitude: 6.8932397, 
     gay_friendly: false,
     hours: {
       monday:    { open: "12:00", close: "16:30" },
@@ -145,8 +145,8 @@ const bars = [
 
   {
     name: "Restaurant ByZoo",
-    latitude: 52.7837996,
-    longitude: 6.8879797,
+    latitude: 52.7814250,
+    longitude: 6.8926556,
     gay_friendly: false,
     hours: {
       monday:    { open: "07:00", close: "23:00" },
