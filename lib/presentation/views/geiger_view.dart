@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/providers.dart';
 
-class GeigerView extends StatefulWidget {
+class GeigerView extends ConsumerStatefulWidget {
   const GeigerView({Key? key}) : super(key: key);
 
   @override
-  State<GeigerView> createState() => _GeigerViewState();
+  ConsumerState<GeigerView> createState() => _GeigerViewState();
 }
 
-class _GeigerViewState extends State<GeigerView> with SingleTickerProviderStateMixin {
+class _GeigerViewState extends ConsumerState<GeigerView> with SingleTickerProviderStateMixin {
   late double intensity;
   late bool isClicking;
   late AnimationController _controller;
@@ -75,6 +77,7 @@ class _GeigerViewState extends State<GeigerView> with SingleTickerProviderStateM
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(vibrationTriggerProvider);
     return SingleChildScrollView(
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 16),

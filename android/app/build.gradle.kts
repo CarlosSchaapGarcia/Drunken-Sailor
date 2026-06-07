@@ -5,6 +5,12 @@ plugins {
 }
 
 android {
+    configurations.all {
+        resolutionStrategy {
+            force("androidx.core:core-ktx:1.13.1")
+        }
+    }
+
     namespace = "com.example.drunken_sailor"
     compileSdk = 36  // Updated to support all plugin dependencies
     ndkVersion = flutter.ndkVersion

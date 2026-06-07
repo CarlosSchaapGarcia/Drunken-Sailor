@@ -1,115 +1,47 @@
 import 'dart:async';
-import 'dart:io';
-import 'package:flutter/services.dart';
+import 'package:vibration/vibration.dart';
 
 class VibrationService {
   static final VibrationService _instance = VibrationService._internal();
   factory VibrationService() => _instance;
   VibrationService._internal();
 
-  static const platform = MethodChannel('com.example.drunken_sailor/vibration');
+  Timer? _timer;
 
-  Timer? _vibrationTimer;
-  bool _isVibrating = false;
-  int _lastAmplitude = 0;
+  void updateForDistance(int distanceMeters) {
+    _stop();
 
-  // Thresholds (meters)
-  static const int threshold50m = 50; // 50 meters
-  static const int threshold20m = 20; // 20 meters
-  static const int threshold10m = 10; // 10 meters
-  static const int stopThreshold = 51; // >50m stops vibration
+    final intervalMs = _intervalForDistance(distanceMeters);
 
-  Future<void> updateForDistance(int distanceMeters) async {
-    if (distanceMeters > stopThreshold) {
-      await stop();
-      return;
-    }
-
-    if (distanceMeters < threshold10m) {
-      // Under 10m: aggressive 200ms on, 100ms off, amplitude 255
-      await _startVibration(
-        onDuration: 200,
-        offDuration: 100,
-        amplitude: 255,
-        pattern: const [0, 200, 100], // wait, vibrate, pause (repeat)
-      );
-    } else if (distanceMeters < threshold20m) {
-      // 10m-20m: 300ms on, 200ms off, amplitude scales 128→255
-      final ratio = (distanceMeters - threshold10m).toDouble() /
-          (threshold20m - threshold10m).toDouble();
-      final amplitude = (128 + (127 * (1 - ratio))).toInt();
-      await _startVibration(
-        onDuration: 300,
-        offDuration: 200,
-        amplitude: amplitude,
-        pattern: const [0, 300, 200],
-      );
-    } else if (distanceMeters < threshold50m) {
-      // 20m-50m: baseline 500ms on, 500ms off, amplitude 128
-      await _startVibration(
-        onDuration: 500,
-        offDuration: 500,
-        amplitude: 128,
-        pattern: const [0, 500, 500],
-      );
-    }
-  }
-
-  Future<void> _startVibration({
-    required int onDuration,
-    required int offDuration,
-    required int amplitude,
-    required List<int> pattern,
-  }) async {
-    // Skip if already vibrating with same intensity
-    if (_isVibrating && _lastAmplitude == amplitude) {
-      return;
-    }
-
-    await stop();
-
-    _isVibrating = true;
-    _lastAmplitude = amplitude;
-
-    if (Platform.isAndroid) {
-      try {
-        // Try modern VibrationEffect (API 26+)
-        await platform.invokeMethod('startVibration', {
-          'onDuration': onDuration,
-          'offDuration': offDuration,
-          'amplitude': amplitude,
-        });
-      } catch (e) {
-        // Fallback: use simple pattern repeat
-        _startPatternVibration(pattern, offDuration);
+    _timer = Timer.periodic(Duration(milliseconds: intervalMs), (_) async {
+      final hasAmplitude = await Vibration.hasCustomVibrationsSupport() ?? false;
+      if (hasAmplitude) {
+        Vibration.vibrate(duration: 80, amplitude: _amplitudeForDistance(distanceMeters));
+      } else {
+        Vibration.vibrate(duration: 80); // iOS fallback
       }
-    }
+    });
   }
 
-  void _startPatternVibration(List<int> pattern, int pauseBetweenRepeats) {
-    _vibrationTimer?.cancel();
-    _vibrationTimer = Timer.periodic(
-      Duration(milliseconds: pattern.fold(0, (a, b) => a + b) + pauseBetweenRepeats),
-      (_) {
-        // Timer handles continuous repetition via periodic callback
-      },
-    );
+  void stop() => _stop();
+
+  void _stop() {
+    _timer?.cancel();
+    _timer = null;
+    Vibration.cancel();
   }
 
-  Future<void> stop() async {
-    _vibrationTimer?.cancel();
-    _vibrationTimer = null;
-    _isVibrating = false;
-    _lastAmplitude = 0;
-
-    if (Platform.isAndroid) {
-      try {
-        await platform.invokeMethod('stopVibration');
-      } catch (_) {}
-    }
+  // Closer = faster pulses (150ms gap) | Far away = slow pulses (2000ms gap)
+  int _intervalForDistance(int distanceMeters) {
+    final clamped = distanceMeters.clamp(0, 50000);
+    final ratio = clamped / 50000;
+    return (150 + ratio * (2000 - 150)).round();
   }
 
-  void dispose() {
-    _vibrationTimer?.cancel();
+  // Closer = stronger buzz (255) | Far away = weak buzz (32)
+  int _amplitudeForDistance(int distanceMeters) {
+    final clamped = distanceMeters.clamp(0, 50000);
+    final ratio = clamped / 50000;
+    return (255 - ratio * (255 - 32)).round();
   }
 }
