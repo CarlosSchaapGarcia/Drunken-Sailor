@@ -80,32 +80,24 @@ final nearestBarProvider = FutureProvider.autoDispose<NearestBarInfo?>((ref) asy
 });
 
 // -- Vibration trigger on distance change --
-final vibrationTriggerProvider = StreamProvider.autoDispose<void>((ref) {
+final vibrationTriggerProvider = Provider.autoDispose<void>((ref) {
   final nearestBarAsync = ref.watch(nearestBarProvider);
   final vibrationService = ref.watch(vibrationServiceProvider);
 
-  return nearestBarAsync.maybeWhen(
+  nearestBarAsync.maybeWhen(
     data: (info) {
       if (info == null) {
         vibrationService.stop();
-        return Stream.value(null);
+        return;
       }
-
       final absDistance = info.distanceMeters.abs();
-
-      // Update vibration based on distance
       if (absDistance <= 50000) {
         vibrationService.updateForDistance(absDistance);
       } else {
         vibrationService.stop();
       }
-
-      return Stream.value(null);
     },
-    orElse: () {
-      vibrationService.stop();
-      return Stream.value(null);
-    },
+    orElse: vibrationService.stop,
   );
 });
 

@@ -11,6 +11,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  vibration: ^2.0.0
   
   # UI and Navigation
   google_maps_flutter: ^2.5.0
