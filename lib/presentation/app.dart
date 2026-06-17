@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
+import '../domain/models/nearest_bar_result.dart';
 import 'providers/providers.dart';
 import 'views/compass_view.dart';
 import 'views/radar_view.dart';
@@ -28,10 +29,9 @@ class _DrunkenSailorAppState extends ConsumerState<DrunkenSailorApp>
   late PageController _pageController;
   Timer? _menuLongPressTimer;
   bool _longPressFired = false;
-  DateTime? _lastBarFetch;
 
   static const _longPressDuration = Duration(seconds: 5);
-  static const _barFetchInterval = Duration(seconds: 30);
+  static const _movementThresholdM = 10.0;
 
   final _views = [ViewMode.compass, ViewMode.radar, ViewMode.geiger];
   final _viewTitles = {
@@ -114,11 +114,15 @@ class _DrunkenSailorAppState extends ConsumerState<DrunkenSailorApp>
     final service = ref.read(locationServiceProvider);
     await service.start();
     service.positionStream.listen((pos) {
-      final now = DateTime.now();
-      if (_lastBarFetch == null || now.difference(_lastBarFetch!) >= _barFetchInterval) {
-        _lastBarFetch = now;
-        // Invalidate the nearest bar provider so it re-fetches with the new position.
-        ref.invalidate(nearestBarProvider);
+      final last = ref.read(queryPositionProvider);
+      final movedFar = last == null ||
+          Geolocator.distanceBetween(
+                last.latitude, last.longitude,
+                pos.latitude, pos.longitude,
+              ) >
+              _movementThresholdM;
+      if (movedFar) {
+        ref.read(queryPositionProvider.notifier).state = pos;
       }
     });
   }
@@ -154,7 +158,7 @@ class _DrunkenSailorAppState extends ConsumerState<DrunkenSailorApp>
   @override
   Widget build(BuildContext context) {
     final showDebug = ref.watch(showDebugOverlayProvider);
-    final nearestAsync = ref.watch(nearestBarProvider);
+    final AsyncValue<NearestBarResult?> nearestAsync = ref.watch(nearestBarProvider);
 
     final scaffold = Scaffold(
       drawer: _buildMenu(),
@@ -230,46 +234,68 @@ class _DrunkenSailorAppState extends ConsumerState<DrunkenSailorApp>
     );
   }
 
-  Widget _buildDistanceIndicator(AsyncValue<int?> nearestAsync) {
+  Widget _buildDistanceIndicator(AsyncValue<NearestBarResult?> nearestAsync) {
+    final themeColor = _themeAccent(_viewThemes[_currentView]!);
     return Container(
       color: const Color(0xFF1e293b).withOpacity(0.5),
-      padding: const EdgeInsets.symmetric(vertical: 12),
+      constraints: const BoxConstraints(minHeight: 48),
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
       child: nearestAsync.when(
         loading: () => const LoadingSpinner(),
-        error: (e, _) => ErrorDisplay(
-          message: 'Could not find nearby bars',
+        error: (_, __) => ErrorDisplay(
+          message: 'Could not reach Firestore',
           onRetry: () => ref.invalidate(nearestBarProvider),
         ),
-        data: (distM) {
-          if (distM == null) {
-            return const Center(
-              child: Text('Locating...', style: TextStyle(fontSize: 14, color: Color(0xFF94a3b8))),
+        data: (result) {
+          if (result == null) {
+            return Center(
+              child: Text(
+                'No bars found nearby',
+                style: TextStyle(fontSize: 15, color: themeColor.withOpacity(0.6)),
+              ),
             );
           }
-          final isOpen = distM >= 0;
-          final abs = distM.abs();
-          final label = abs < 1000 ? '${abs}m' : '${(abs / 1000).toStringAsFixed(1)}km';
+          final dist = result.distanceM;
+          final distLabel = dist < 1000
+              ? '${dist}m'
+              : '${(dist / 1000).toStringAsFixed(1)}km';
+          final nameColor = result.isOpen ? themeColor : const Color(0xFF64748b);
           return Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(
-                isOpen ? 'Destination in' : 'All closed, nearest',
-                style: const TextStyle(fontSize: 14, color: Color(0xFF94a3b8)),
-              ),
-              const SizedBox(width: 16),
-              Text(
-                isOpen ? label : '-$label',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: isOpen ? const Color(0xFF10b981) : const Color(0xFFef4444),
+              Flexible(
+                child: Text(
+                  result.bar.name,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: nameColor),
                 ),
               ),
+              const SizedBox(width: 8),
+              Text(
+                distLabel,
+                style: const TextStyle(fontSize: 15, color: Color(0xFF94a3b8)),
+              ),
+              if (!result.isOpen) ...[
+                const SizedBox(width: 6),
+                const Text(
+                  'closed',
+                  style: TextStyle(fontSize: 11, color: Color(0xFF475569)),
+                ),
+              ],
             ],
           );
         },
       ),
     );
+  }
+
+  Color _themeAccent(String theme) {
+    switch (theme) {
+      case 'pirate': return const Color(0xFFfbbf24);
+      case 'nuclear': return const Color(0xFFef4444);
+      case 'submarine': return const Color(0xFF10b981);
+      default: return const Color(0xFF10b981);
+    }
   }
 
   Widget _buildDots() {
