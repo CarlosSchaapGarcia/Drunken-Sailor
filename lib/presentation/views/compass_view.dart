@@ -1,450 +1,219 @@
+import 'dart:math' show pi;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'dart:math' as math;
-import 'dart:ui' as ui;
-import '../providers/providers.dart';
 
+import '../providers/providers.dart';
+import '../../data/services/bearing_utils.dart';
+import 'target_dial_painter.dart';
+
+/// Compass that points at the current nearest bar (from [nearestBarProvider])
+/// instead of true north.
+///
+/// Deliberately does NOT own its own Geolocator subscription. The app
+/// already has one location pipeline (`locationServiceProvider` ->
+/// `nearestBarProvider`, wired up in DrunkenSailorApp), and running a
+/// second independent one here would mean two concurrent location
+/// subscriptions, two permission flows, and a target that could disagree
+/// with the distance indicator shown above the page view. Instead this
+/// widget:
+///  - reads the target bar's latitude/longitude from `nearestBarProvider`
+///  - reads the device's current position from `currentPositionProvider`
+///    (a thin wrapper around locationServiceProvider's position stream,
+///    see providers.dart)
+///  - reads device heading from `deviceHeadingProvider` (a thin wrapper
+///    around flutter_compass, since nothing in the existing providers
+///    exposes heading)
+/// and combines those into a rotation angle itself.
 class CompassView extends ConsumerStatefulWidget {
-  const CompassView({Key? key}) : super(key: key);
+  const CompassView({
+    Key? key,
+    this.targetLabel = '🍺',
+    this.size = 300,
+    this.backgroundColor = const Color(0xFF3d2817), // dark wood-ish brown
+    this.markerColor = const Color(0xFFfbbf24), // amber
+    this.ringColor = const Color(0xFFfbbf24),
+    this.tickColor = const Color(0x80fbbf24),
+    this.textStyle = const TextStyle(
+      fontSize: 22,
+      fontWeight: FontWeight.bold,
+      color: Color(0xFFfbbf24),
+    ),
+  }) : super(key: key);
+
+  final String targetLabel;
+  final double size;
+  final Color backgroundColor;
+  final Color markerColor;
+  final Color ringColor;
+  final Color tickColor;
+  final TextStyle textStyle;
 
   @override
   ConsumerState<CompassView> createState() => _CompassViewState();
 }
 
-class _CompassViewState extends ConsumerState<CompassView>
-    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
-  late AnimationController _animationController;
-  late Animation<double> _rotationAnimation;
-  double _targetRotation = 0;
-  double _currentRotation = 0;
-  bool _isSensorActive = false;
-  VoidCallback? _animationListener;
-  ui.Image? _woodTexture;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-
-    _animationController = AnimationController(
-      duration: const Duration(milliseconds: 300),
-      vsync: this,
-    );
-
-    // Load wooden texture image
-    _loadWoodTexture();
-
-    // Initialize heading service on first build
-    Future.microtask(() {
-      if (mounted) {
-        _initializeHeading();
-      }
-    });
-  }
-
-  void _loadWoodTexture() async {
-    try {
-      final ImageProvider imageProvider = NetworkImage(
-        'https://images.unsplash.com/photo-1546484396-fb3fc6f95f98?w=1200&q=80',
-      );
-      final ImageStream imageStream = imageProvider.resolve(ImageConfiguration.empty);
-      imageStream.addListener(ImageStreamListener((image, synchronousCall) {
-        if (mounted) {
-          setState(() {
-            _woodTexture = image.image;
-          });
-        }
-      }));
-    } catch (e) {
-      debugPrint('Error loading wood texture: $e');
-    }
-  }
-
-  void _initializeHeading() async {
-    final headingService = ref.read(headingServiceProvider);
-    try {
-      await headingService.start();
-      if (mounted) {
-        setState(() => _isSensorActive = true);
-      }
-    } catch (e) {
-      debugPrint('Error initializing heading service: $e');
-    }
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    final headingService = ref.read(headingServiceProvider);
-    if (state == AppLifecycleState.resumed && !_isSensorActive) {
-      headingService.start();
-      setState(() => _isSensorActive = true);
-    } else if (state == AppLifecycleState.paused) {
-      headingService.stop();
-      setState(() => _isSensorActive = false);
-    }
-  }
-
-  void _updateRotation(double newRotation) {
-    if (!mounted) return;
-
-    // Calculate shortest rotation path
-    double delta = (newRotation - _currentRotation + 180) % 360 - 180;
-    if (delta.isNaN) delta = 0;
-
-    _targetRotation = _currentRotation + delta;
-
-    // Remove old listener before adding new one
-    if (_animationListener != null) {
-      _rotationAnimation.removeListener(_animationListener!);
-    }
-
-    _rotationAnimation = Tween<double>(
-      begin: _currentRotation,
-      end: _targetRotation,
-    ).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
-    );
-
-    // Create and store listener reference
-    _animationListener = () {
-      if (mounted) {
-        setState(() {
-          _currentRotation = _rotationAnimation.value % 360;
-        });
-      }
-    };
-    
-    _rotationAnimation.addListener(_animationListener!);
-    _animationController.forward(from: 0.0);
-  }
-
-  @override
-  void dispose() {
-    if (_animationListener != null) {
-      _rotationAnimation.removeListener(_animationListener!);
-    }
-    WidgetsBinding.instance.removeObserver(this);
-    _animationController.dispose();
-    final headingService = ref.read(headingServiceProvider);
-    headingService.stop();
-    super.dispose();
-  }
+class _CompassViewState extends ConsumerState<CompassView> {
+  // Unwrapped rotation in degrees — NOT normalized to [0, 360). Needed
+  // even without animation: Transform.rotate just applies whatever angle
+  // it's given immediately, so on its own it wouldn't spin. The earlier
+  // spin came from AnimatedRotation tweening between old/new `turns`
+  // with no concept of angle wraparound (359° -> 1° animated as +362°
+  // instead of the short +2° hop). Switching to Transform.rotate (no
+  // animation, snaps instantly to each sensor reading) removes that
+  // specific bug by construction. We keep the unwrap/running-value logic
+  // anyway, partly for harmless continuity, and so re-introducing any
+  // animation later doesn't reintroduce the spin.
+  double? _lastRotation;
 
   @override
   Widget build(BuildContext context) {
-    // Watch the compass needle rotation stream
-    final needleAsync = ref.watch(compassNeedleProvider);
+    final nearestAsync = ref.watch(nearestBarProvider);
+    final positionAsync = ref.watch(currentPositionProvider);
+    final headingAsync = ref.watch(deviceHeadingProvider);
 
     return SingleChildScrollView(
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: SizedBox(
-          width: double.infinity,
-          height: 400,
-          child: needleAsync.when(
-            data: (rotation) {
-              // Update animation when bearing changes (including first value)
-              _updateRotation(rotation);
-
-              return CustomPaint(
-                painter: CompassPainter(rotation: _currentRotation, woodTexture: _woodTexture),
-              );
-            },
-            loading: () => CustomPaint(
-              painter: CompassPainter(rotation: 0, woodTexture: _woodTexture),
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                width: widget.size,
+                height: widget.size,
+                child: Stack(
+                  alignment: Alignment.center,
                   children: [
-                    const CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation(Color(0xFFfbbf24)),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      _isSensorActive ? 'Acquiring heading...' : 'Initializing sensors...',
-                      style: const TextStyle(
-                        color: Color(0xFFfbbf24),
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
+                    CustomPaint(
+                      size: Size(widget.size, widget.size),
+                      painter: TargetDialPainter(
+                        backgroundColor: widget.backgroundColor,
+                        ringColor: widget.ringColor,
+                        tickColor: widget.tickColor,
                       ),
                     ),
+                    _buildMarker(nearestAsync, positionAsync, headingAsync),
                   ],
                 ),
               ),
-            ),
-            error: (error, stack) => CustomPaint(
-              painter: CompassPainter(rotation: 0, woodTexture: _woodTexture),
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(
-                      Icons.error_outline,
-                      color: Color(0xFFef4444),
-                      size: 32,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Heading unavailable',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: const Color(0xFFef4444),
-                          ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            ],
           ),
         ),
       ),
     );
   }
+
+  Widget _buildMarker(
+    AsyncValue<dynamic> nearestAsync,
+    AsyncValue<dynamic> positionAsync,
+    AsyncValue<double?> headingAsync,
+  ) {
+    final info = nearestAsync.valueOrNull;
+    final position = positionAsync.valueOrNull;
+    final heading = headingAsync.valueOrNull;
+
+    final hasFix = info != null && position != null && heading != null;
+
+    if (!hasFix) {
+      return SizedBox(
+        width: 28,
+        height: 28,
+        child: CircularProgressIndicator(strokeWidth: 2, color: widget.markerColor),
+      );
+    }
+
+    final bearingToTarget = bearingBetween(
+      fromLat: position.latitude,
+      fromLng: position.longitude,
+      toLat: info.bar.latitude,
+      toLng: info.bar.longitude,
+    );
+    // Normalized target, purely as a starting point for unwrapping below.
+    final normalizedRotation = (bearingToTarget - heading + 360) % 360;
+
+    final rotation = _unwrap(normalizedRotation);
+    _lastRotation = rotation;
+
+    return Transform.rotate(
+      angle: rotation * (pi / 180),
+      child: _Marker(
+        label: widget.targetLabel,
+        color: widget.markerColor,
+        textStyle: widget.textStyle,
+        dialSize: widget.size,
+      ),
+    );
+  }
+
+  /// Picks whichever of {normalized, normalized + 360, normalized - 360}
+  /// is closest to the previous rotation. With Transform.rotate (no
+  /// animation) this mainly keeps the value continuous frame to frame
+  /// rather than jumping discontinuously at the 0/360 boundary; it also
+  /// means any future animated transition would take the short way round.
+  double _unwrap(double normalized) {
+    final last = _lastRotation;
+    if (last == null) return normalized;
+
+    final candidates = [normalized - 360, normalized, normalized + 360];
+    candidates.sort((a, b) => (a - last).abs().compareTo((b - last).abs()));
+    return candidates.first;
+  }
+
 }
 
-class CompassPainter extends CustomPainter {
-  final double rotation;
-  final ui.Image? woodTexture;
+class _Marker extends StatelessWidget {
+  const _Marker({
+    required this.label,
+    required this.color,
+    required this.textStyle,
+    required this.dialSize,
+  });
 
-  CompassPainter({required this.rotation, this.woodTexture});
+  final String label;
+  final Color color;
+  final TextStyle textStyle;
+  final double dialSize;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: dialSize,
+      height: dialSize,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          CustomPaint(
+            size: Size(dialSize, dialSize),
+            painter: _NeedlePainter(color: color),
+          ),
+          Positioned(
+            top: dialSize * 0.08,
+            child: Text(label, style: textStyle),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NeedlePainter extends CustomPainter {
+  _NeedlePainter({required this.color});
+  final Color color;
 
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2 - 20;
+    final tip = Offset(size.width / 2, size.height * 0.12);
 
-    // Draw wooden background with overlay
-    _drawWoodBackground(canvas, size);
-
-    // Draw outer circle with border
-    canvas.drawCircle(
-      center,
-      radius,
-      Paint()
-        ..color = const Color(0xFFfbbf24)
-        ..style = PaintingStyle.fill,
-    );
-
-    // Gradient background
     final paint = Paint()
-      ..shader = SweepGradient(
-        colors: [const Color(0xFFfcd34d), const Color(0xFFdab122)],
-        stops: const [0.0, 1.0],
-      ).createShader(Rect.fromCircle(center: center, radius: radius));
-    canvas.drawCircle(center, radius, paint);
-
-    // Border
-    canvas.drawCircle(
-      center,
-      radius,
-      Paint()
-        ..color = const Color(0xFFb45309)
-        ..strokeWidth = 4
-        ..style = PaintingStyle.stroke,
-    );
-
-    // Draw cardinal directions
-    _drawCardinalDirections(canvas, center, radius);
-
-    // Draw tick marks
-    _drawTickMarks(canvas, center, radius);
-
-    // Draw compass needle pointing to target bearing
-    _drawNeedle(canvas, center, radius);
-
-    // Draw center dot
-    canvas.drawCircle(
-      center,
-      6,
-      Paint()
-        ..color = const Color(0xFF78350f)
-        ..style = PaintingStyle.fill,
-    );
-
-    canvas.drawCircle(
-      center,
-      6,
-      Paint()
-        ..color = const Color(0xFFFEF3C7)
-        ..strokeWidth = 2
-        ..style = PaintingStyle.stroke,
-    );
-
-    // Draw pirate decorations
-    _drawText(canvas, '☠️', center.translate(-radius + 15, -radius + 15), 24);
-    _drawText(canvas, '⚓', center.translate(-radius + 10, radius - 20), 18);
-  }
-
-  void _drawWoodBackground(Canvas canvas, Size size) {
-    // Draw wooden texture image if loaded
-    if (woodTexture != null) {
-      // Draw the wood texture with brightness/contrast adjustment
-      final srcRect = Rect.fromLTWH(0, 0, woodTexture!.width.toDouble(), woodTexture!.height.toDouble());
-      final dstRect = Rect.fromLTWH(0, 0, size.width, size.height);
-      
-      canvas.drawImageRect(
-        woodTexture!,
-        srcRect,
-        dstRect,
-        Paint()
-          ..colorFilter = ColorFilter.matrix([
-            0.5, 0, 0, 0, 0,        // Red: brightness 0.5
-            0, 0.5, 0, 0, 0,        // Green: brightness 0.5
-            0, 0, 0.5, 0, 0,        // Blue: brightness 0.5
-            0, 0, 0, 1, 0,          // Alpha: unchanged
-          ]),
-      );
-    } else {
-      // Fallback to solid dark brown if texture not loaded
-      canvas.drawRect(
-        Rect.fromLTWH(0, 0, size.width, size.height),
-        Paint()..color = const Color(0xFF3d2817),
-      );
-    }
-
-    // Draw dark overlay gradient (amber-950/40 to stone-950/40)
-    canvas.drawRect(
-      Rect.fromLTWH(0, 0, size.width, size.height),
-      Paint()
-        ..shader = LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            const Color(0xFF78350f).withOpacity(0.4),  // amber-950/40
-            const Color(0xFF292524).withOpacity(0.4),  // stone-950/40
-          ],
-        ).createShader(Rect.fromLTWH(0, 0, size.width, size.height)),
-    );
-  }
-
-  void _drawCardinalDirections(Canvas canvas, Offset center, double radius) {
-    const directions = ['N', 'E', 'S', 'W'];
-    const angles = [0, 90, 180, 270];
-
-    for (int i = 0; i < directions.length; i++) {
-      final angle = angles[i] * math.pi / 180;
-      final x = center.dx + (radius - 30) * math.cos(angle - math.pi / 2);
-      final y = center.dy + (radius - 30) * math.sin(angle - math.pi / 2);
-
-      _drawText(
-        canvas,
-        directions[i],
-        Offset(x, y),
-        28,
-        bold: true,
-        color: const Color(0xFF78350f),
-      );
-    }
-  }
-
-  void _drawTickMarks(Canvas canvas, Offset center, double radius) {
-    for (int i = 0; i < 12; i++) {
-      final angle = (i * 30 - 90) * math.pi / 180;
-      final isCardinal = i % 3 == 0;
-      final markLength = isCardinal ? 12 : 6;
-      final markWidth = isCardinal ? 2.0 : 1.0;
-
-      final x1 = center.dx + (radius - 10) * math.cos(angle);
-      final y1 = center.dy + (radius - 10) * math.sin(angle);
-      final x2 = center.dx + (radius - 10 - markLength) * math.cos(angle);
-      final y2 = center.dy + (radius - 10 - markLength) * math.sin(angle);
-
-      canvas.drawLine(
-        Offset(x1, y1),
-        Offset(x2, y2),
-        Paint()
-          ..color = isCardinal ? const Color(0xFF78350f) : const Color(0xFF92400e)
-          ..strokeWidth = markWidth,
-      );
-    }
-  }
-
-  void _drawNeedle(Canvas canvas, Offset center, double radius) {
-    final needleLength = radius * 0.6;
-    // Needle points to the rotation angle (0° = north/up)
-    final angle = (rotation - 90) * math.pi / 180;
-
-    // Red needle pointing to target bar (top)
-    final redEnd = Offset(
-      center.dx + needleLength * math.cos(angle),
-      center.dy + needleLength * math.sin(angle),
-    );
-
-    final path1 = Path();
-    path1.moveTo(center.dx, center.dy);
-    path1.lineTo(
-      center.dx + 4 * math.cos(angle + math.pi / 6),
-      center.dy + 4 * math.sin(angle + math.pi / 6),
-    );
-    path1.lineTo(redEnd.dx, redEnd.dy);
-    path1.lineTo(
-      center.dx + 4 * math.cos(angle - math.pi / 6),
-      center.dy + 4 * math.sin(angle - math.pi / 6),
-    );
-    path1.close();
-
-    canvas.drawPath(
-      path1,
-      Paint()
-        ..color = const Color(0xFFdc2626)
-        ..style = PaintingStyle.fill,
-    );
-
-    // Light needle (back opposite side)
-    final angle180 = (rotation - 90 + 180) * math.pi / 180;
-    final lightEnd = Offset(
-      center.dx + (needleLength * 0.4) * math.cos(angle180),
-      center.dy + (needleLength * 0.4) * math.sin(angle180),
-    );
-
-    final path2 = Path();
-    path2.moveTo(center.dx, center.dy);
-    path2.lineTo(
-      center.dx + 3 * math.cos(angle180 + math.pi / 6),
-      center.dy + 3 * math.sin(angle180 + math.pi / 6),
-    );
-    path2.lineTo(lightEnd.dx, lightEnd.dy);
-    path2.lineTo(
-      center.dx + 3 * math.cos(angle180 - math.pi / 6),
-      center.dy + 3 * math.sin(angle180 - math.pi / 6),
-    );
-    path2.close();
-
-    canvas.drawPath(
-      path2,
-      Paint()
-        ..color = const Color(0xFFF1F5F9)
-        ..style = PaintingStyle.fill,
-    );
-  }
-
-  void _drawText(
-    Canvas canvas,
-    String text,
-    Offset position,
-    double fontSize, {
-    bool bold = false,
-    Color color = const Color(0xFF000000),
-  }) {
-    final textPainter = TextPainter(
-      text: TextSpan(
-        text: text,
-        style: TextStyle(
-          fontSize: fontSize,
-          fontWeight: bold ? FontWeight.bold : FontWeight.normal,
-          color: color,
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-    );
-    textPainter.layout();
-    textPainter.paint(
-      canvas,
-      position.translate(-textPainter.width / 2, -textPainter.height / 2),
-    );
+      ..color = color
+      ..strokeWidth = 4
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(center, tip, paint);
   }
 
   @override
-  bool shouldRepaint(CompassPainter oldDelegate) => 
-      oldDelegate.rotation != rotation || 
-      oldDelegate.woodTexture != woodTexture;
+  bool shouldRepaint(covariant _NeedlePainter oldDelegate) =>
+      oldDelegate.color != color;
 }

@@ -123,7 +123,7 @@ class RadarPainter extends CustomPainter {
     _drawWaterBackground(canvas, size);
     _drawDepthGauge(canvas, size, gaugeWidth);
     _drawAmbientRipples(canvas, center, radius, sweepAngle);
-    _drawBackground(canvas, center, radius);
+    // _drawBackground(canvas, center, radius);
     _drawGrid(canvas, center, radius);
     _drawSweepGradient(canvas, center, radius, sweepAngle);
     _drawSweepLine(canvas, center, radius, sweepAngle);

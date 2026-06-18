@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:sensors_plus/sensors_plus.dart';
-import 'package:geolocator/geolocator.dart';
 
 /// Service for reading device heading using magnetometer + accelerometer.
 /// Provides smooth, filtered heading updates with jitter suppression (< 5°).
@@ -19,9 +18,6 @@ class HeadingService {
   StreamSubscription<MagnetometerEvent>? _magnetometerSubscription;
   StreamSubscription<AccelerometerEvent>? _accelerometerSubscription;
 
-  // Jitter filtering: ignore heading changes < 3 degrees (was 5°, reduced for responsiveness)
-  static const double _jitterThresholdDegrees = 3.0;
-
   // Smoothing window: average heading over last 150ms for faster responsiveness
   static const Duration _smoothingWindow = Duration(milliseconds: 150);
 
@@ -37,19 +33,39 @@ class HeadingService {
 
   double? get currentHeading => _currentHeading;
 
-  /// Start reading magnetometer + accelerometer
-  Future<void> start() async {
-    await stop();
+  // Reference count of active callers (e.g. CompassView instances) that
+  // have called start(). This exists because HeadingService is a
+  // singleton, but multiple widget lifecycles can call start()/stop()
+  // independently and with no ordering guarantee between them — e.g. when
+  // navigating between screens, the OLD screen's dispose() -> stop() can
+  // run AFTER the NEW screen's initState() -> start(), since start() is
+  // deferred via Future.microtask in CompassView. Without ref counting,
+  // that race tears down the subscriptions the new screen just set up,
+  // producing a needle that updates once and then never again.
+  int _activeUsers = 0;
 
-    // Try to get initial position heading (GPS-based) as fallback
-    try {
-      final pos = await Geolocator.getCurrentPosition();
-      if (pos.heading.isFinite && pos.heading >= 0) {
-        _lastHeading = pos.heading;
-        _currentHeading = pos.heading;
-        _headingController.add(pos.heading);
-      }
-    } catch (_) {}
+  /// Start reading magnetometer + accelerometer.
+  /// Safe to call multiple times concurrently (e.g. from overlapping
+  /// widget lifecycles) — only actually subscribes to sensors once, on
+  /// the transition from 0 to 1 active users.
+  Future<void> start() async {
+    _activeUsers++;
+    if (_activeUsers > 1) {
+      // Sensors are already running for another active caller — don't
+      // tear down and resubscribe, just let this caller "join" the
+      // existing stream.
+      return;
+    }
+
+    // NOTE: We deliberately do NOT seed _lastHeading from
+    // Geolocator's Position.heading here. That field is GPS
+    // direction-of-travel, not compass heading — it's only meaningful
+    // while moving at a reasonable speed, and reports 0 (not NaN) when
+    // stationary or slow. Using it as a fallback baseline could poison
+    // the jitter-filter comparison in _updateHeading() with a bogus
+    // value, causing the first real magnetometer-derived readings to be
+    // wrongly suppressed if they happened to fall within the jitter
+    // threshold of that bogus GPS value.
 
     // Subscribe to accelerometer (gravity vector)
     _accelerometerSubscription = accelerometerEvents.listen((event) {
@@ -68,7 +84,33 @@ class HeadingService {
     });
   }
 
+  /// Stop reading sensors. Safe to call multiple times concurrently —
+  /// only actually cancels subscriptions once every active caller (every
+  /// matching start() call) has also called stop().
   Future<void> stop() async {
+    if (_activeUsers > 0) {
+      _activeUsers--;
+    }
+    if (_activeUsers > 0) {
+      // Other callers are still relying on the sensors being active.
+      return;
+    }
+
+    await _magnetometerSubscription?.cancel();
+    await _accelerometerSubscription?.cancel();
+    _magnetometerSubscription = null;
+    _accelerometerSubscription = null;
+    _headingBuffer.clear();
+    _headingTimestamps.clear();
+  }
+
+  /// Force-stops sensors and resets the active-user count to 0,
+  /// regardless of how many start() calls are outstanding. Use this only
+  /// for hard resets (e.g. app shutdown via dispose()) — NOT as a
+  /// replacement for stop() in normal widget lifecycles, since it would
+  /// pull the rug out from under other active callers.
+  Future<void> _forceStop() async {
+    _activeUsers = 0;
     await _magnetometerSubscription?.cancel();
     await _accelerometerSubscription?.cancel();
     _magnetometerSubscription = null;
@@ -78,7 +120,7 @@ class HeadingService {
   }
 
   void dispose() {
-    stop();
+    _forceStop();
     _headingController.close();
   }
 
@@ -113,10 +155,14 @@ class HeadingService {
     final myn = my / mMag;
     final mzn = mz / mMag;
 
-    // Cross product: east = mag × accel
-    final ex = ayn * mzn - azn * myn;
-    final ey = azn * mxn - axn * mzn;
-    final ez = axn * myn - ayn * mxn;
+    // Cross product: east = mag × accel (standard sensor-fusion formula —
+    // NOTE: order matters. Cross product is anti-commutative, so
+    // accel × mag would give the negative of this vector and produce a
+    // heading that doesn't correspond to any simple offset of the true
+    // heading — it was the root cause of the "inconsistent" direction bug.
+    final ex = myn * azn - mzn * ayn;
+    final ey = mzn * axn - mxn * azn;
+    final ez = mxn * ayn - myn * axn;
 
     // Normalize east vector
     final eMag = math.sqrt(ex * ex + ey * ey + ez * ez);
@@ -137,27 +183,19 @@ class HeadingService {
     // Normalize to 0-360
     heading = (heading + 360) % 360;
 
-    // Apply jitter filtering
-    if (_lastHeading != null) {
-      final delta = (heading - _lastHeading!).abs();
-      if (delta > 180) {
-        // Shortest path around 0/360
-        if ((heading - _lastHeading! + 360) % 360 < 180) {
-          // heading is actually ahead
-          if (((heading - _lastHeading! + 360) % 360) < _jitterThresholdDegrees) {
-            return;
-          }
-        } else {
-          // heading is actually behind
-          if (((heading - _lastHeading! + 360) % 360 - 360).abs() < _jitterThresholdDegrees) {
-            return;
-          }
-        }
-      } else if (delta < _jitterThresholdDegrees) {
-        return;
-      }
-    }
-
+    // NOTE: a hard "ignore changes smaller than N degrees" jitter filter
+    // used to live here. It was removed because it had a bug: whenever it
+    // suppressed a small change, it returned early WITHOUT updating
+    // _lastHeading. That meant a baseline value from one moment in time
+    // could get "stuck" — every subsequent small rotation kept comparing
+    // against that same stale baseline and kept getting rejected, even as
+    // the phone's actual heading drifted further and further away from
+    // it. The visible symptom was a needle that moved once on load and
+    // then never updated again.
+    //
+    // The _headingBuffer/_circularMean smoothing below already absorbs
+    // sensor noise (it averages over a rolling time window), so a
+    // separate reject-small-deltas filter isn't needed on top of it.
     _lastHeading = heading;
 
     // Add to smoothing buffer
