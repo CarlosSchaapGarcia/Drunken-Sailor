@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:geolocator/geolocator.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../data/repositories/firestore_bar_repository.dart';
 import '../../data/services/heading_service.dart';
 import '../../data/services/location_service.dart';
@@ -49,7 +50,37 @@ final vibrationServiceProvider = Provider<VibrationService>(
   (ref) => VibrationService(),
 );
 
+// -- Blacklist (personal, persisted to SharedPreferences) --
+
+class BlacklistNotifier extends StateNotifier<Set<String>> {
+  static const _key = 'blacklisted_bar_ids';
+  BlacklistNotifier() : super(const {}) { _load(); }
+
+  Future<void> _load() async {
+    final prefs = await SharedPreferences.getInstance();
+    final ids = prefs.getStringList(_key) ?? [];
+    if (mounted) state = ids.toSet();
+  }
+
+  Future<void> toggle(String barId) async {
+    final updated = Set<String>.from(state);
+    if (updated.contains(barId)) { updated.remove(barId); } else { updated.add(barId); }
+    state = updated;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(_key, updated.toList());
+  }
+}
+
+final blacklistedBarIdsProvider =
+    StateNotifierProvider<BlacklistNotifier, Set<String>>(
+  (ref) => BlacklistNotifier(),
+);
+
 // -- UI state providers --
+
+final gayFriendlyFilterProvider = StateProvider<bool>((ref) => false);
+
+final selectedBarIndexProvider = StateProvider<int>((ref) => 0);
 
 final currentThemeProvider = StateProvider<String>((ref) => 'pirate');
 
@@ -80,35 +111,44 @@ class NearestBarInfo {
   NearestBarInfo({required this.bar, required this.distanceMeters});
 }
 
-// -- Nearest bar info (bar + distance meters; null = no bars nearby) --
-final nearestBarProvider = FutureProvider.autoDispose<NearestBarInfo?>((ref) async {
-  // ref.read (not ref.watch) so this provider only re-runs on explicit
-  // ref.invalidate() calls (every 30 s). ref.watch would restart it on every
-  // GPS position event, cycling vibrationService stop→start at the GPS rate.
-  final pos = await ref.read(locationStreamProvider.future);
+// -- Top 5 nearest bars after applying gay-friendly and blacklist filters --
+final top5BarsProvider = FutureProvider.autoDispose<List<NearestBarInfo>>((ref) async {
+  // Watches set up before any await so Riverpod tracks them correctly.
+  final gayFilter = ref.watch(gayFriendlyFilterProvider);
+  final blacklist = ref.watch(blacklistedBarIdsProvider);
 
+  final pos = await ref.read(locationStreamProvider.future);
   final repo = ref.read(barRepositoryProvider);
-  // Fetch all bars (uses cache when available) and compute nearest locally.
   final all = await repo.getAllBars();
-  if (all.isEmpty) return null;
+
+  var pool = all.where((b) =>
+    !b.isBlacklisted &&
+    !blacklist.contains(b.id) &&
+    (!gayFilter || b.gayFriendly)
+  ).toList();
+
+  if (pool.isEmpty) return [];
 
   final now = DateTime.now();
-  // Prefer open bars; fall back to any bar if none open
-  final open = all.where((b) => b.isOpenAt(now)).toList();
-  final candidates = open.isNotEmpty ? open : all;
+  final open = pool.where((b) => b.isOpenAt(now)).toList();
+  final candidates = open.isNotEmpty ? open : pool;
 
-  // Find nearest candidate
-  Bar nearest = candidates.first;
-  var bestDist = nearest.distanceTo(pos.latitude, pos.longitude);
-  for (final b in candidates.skip(1)) {
-    final d = b.distanceTo(pos.latitude, pos.longitude);
-    if (d < bestDist) {
-      nearest = b;
-      bestDist = d;
-    }
-  }
+  candidates.sort((a, b) =>
+    a.distanceTo(pos.latitude, pos.longitude)
+     .compareTo(b.distanceTo(pos.latitude, pos.longitude)));
 
-  return NearestBarInfo(bar: nearest, distanceMeters: open.isNotEmpty ? bestDist : -bestDist);
+  return candidates.take(5).map((bar) {
+    final dist = bar.distanceTo(pos.latitude, pos.longitude);
+    return NearestBarInfo(bar: bar, distanceMeters: open.isNotEmpty ? dist : -dist);
+  }).toList();
+});
+
+// -- Selected bar from top 5 (index 0 = nearest) --
+final nearestBarProvider = FutureProvider.autoDispose<NearestBarInfo?>((ref) async {
+  final index = ref.watch(selectedBarIndexProvider);
+  final bars = await ref.watch(top5BarsProvider.future);
+  if (bars.isEmpty) return null;
+  return bars[index.clamp(0, bars.length - 1)];
 });
 
 // -- Vibration trigger on distance change --
@@ -151,10 +191,6 @@ final openBarPositionsProvider = StreamProvider<List<BarRelativePosition>>((ref)
           0.0,
           maxRangeMeters: 5000,
         )).toList();
-
-    for (final p in positions) {
-      print('[Radar] ${p.bar.name}: distance=${p.distanceMeters.toInt()}m ratio=${p.distanceRatio.toStringAsFixed(2)} visible=${p.visible}');
-    }
 
     return positions.where((p) => p.visible).toList();
   });

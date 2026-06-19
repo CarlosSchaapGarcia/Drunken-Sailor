@@ -9,6 +9,7 @@ import 'views/compass_view.dart';
 import 'views/radar_view.dart';
 import 'views/geiger_view.dart';
 import 'views/map_view.dart';
+import 'views/blacklist_view.dart';
 import 'widgets/error_display.dart';
 import 'widgets/loading_spinner.dart';
 import 'widgets/location_debug_overlay.dart';
@@ -127,7 +128,7 @@ class _DrunkenSailorAppState extends ConsumerState<DrunkenSailorApp>
       final now = DateTime.now();
       if (_lastBarFetch == null || now.difference(_lastBarFetch!) >= _barFetchInterval) {
         _lastBarFetch = now;
-        // Invalidate the nearest bar provider so it re-fetches with the new position.
+        ref.invalidate(top5BarsProvider);
         ref.invalidate(nearestBarProvider);
       }
     });
@@ -245,44 +246,77 @@ class _DrunkenSailorAppState extends ConsumerState<DrunkenSailorApp>
   }
 
   Widget _buildDistanceIndicator(AsyncValue<dynamic> nearestAsync) {
+    final index = ref.watch(selectedBarIndexProvider);
+    final total = ref.watch(top5BarsProvider).valueOrNull?.length ?? 1;
+
     return Container(
       color: const Color(0xFF1e293b).withOpacity(0.5),
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: nearestAsync.when(
-        loading: () => const LoadingSpinner(),
-        error: (e, _) => ErrorDisplay(
-          message: 'Could not find nearby bars',
-          onRetry: () => ref.invalidate(nearestBarProvider),
-        ),
-        data: (info) {
-          if (info == null) {
-            return const Center(
-              child: Text('Locating...', style: TextStyle(fontSize: 14, color: Color(0xFF94a3b8))),
-            );
-          }
-          final isOpen = info.distanceMeters >= 0;
-          final abs = info.distanceMeters.abs();
-          final label = abs < 1000 ? '${abs}m' : '${(abs / 1000).toStringAsFixed(1)}km';
-          final title = isOpen ? '${info.bar.name} in' : 'All closed, nearest';
-          return Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(fontSize: 14, color: Color(0xFF94a3b8)),
+      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+      child: Row(
+        children: [
+          IconButton(
+            icon: Icon(Icons.chevron_left,
+                color: index > 0 ? Colors.white : const Color(0xFF334155)),
+            onPressed: index > 0
+                ? () => ref.read(selectedBarIndexProvider.notifier).state = index - 1
+                : null,
+          ),
+          Expanded(
+            child: nearestAsync.when(
+              loading: () => const LoadingSpinner(),
+              error: (e, _) => ErrorDisplay(
+                message: 'Could not find nearby bars',
+                onRetry: () {
+                  ref.invalidate(top5BarsProvider);
+                  ref.invalidate(nearestBarProvider);
+                },
               ),
-              const SizedBox(width: 16),
-              Text(
-                isOpen ? label : '-$label',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: isOpen ? const Color(0xFF10b981) : const Color(0xFFef4444),
-                ),
-              ),
-            ],
-          );
-        },
+              data: (info) {
+                if (info == null) {
+                  return const Center(
+                    child: Text('No bars match filters',
+                        style: TextStyle(fontSize: 14, color: Color(0xFF94a3b8))),
+                  );
+                }
+                final isOpen = info.distanceMeters >= 0;
+                final abs = info.distanceMeters.abs();
+                final label = abs < 1000 ? '${abs}m' : '${(abs / 1000).toStringAsFixed(1)}km';
+                final title = isOpen ? '${info.bar.name} in' : 'All closed, nearest';
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(title,
+                            style: const TextStyle(fontSize: 14, color: Color(0xFF94a3b8))),
+                        const SizedBox(width: 12),
+                        Text(
+                          isOpen ? label : '-$label',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: isOpen ? const Color(0xFF10b981) : const Color(0xFFef4444),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (total > 1)
+                      Text('${index + 1} / $total',
+                          style: const TextStyle(fontSize: 11, color: Color(0xFF475569))),
+                  ],
+                );
+              },
+            ),
+          ),
+          IconButton(
+            icon: Icon(Icons.chevron_right,
+                color: index < total - 1 ? Colors.white : const Color(0xFF334155)),
+            onPressed: index < total - 1
+                ? () => ref.read(selectedBarIndexProvider.notifier).state = index + 1
+                : null,
+          ),
+        ],
       ),
     );
   }
@@ -328,9 +362,29 @@ class _DrunkenSailorAppState extends ConsumerState<DrunkenSailorApp>
             _menuTile(Icons.compass_calibration, 'Compass', const Color(0xFFfbbf24), 0),
             _menuTile(Icons.radar, 'Radar', const Color(0xFF10b981), 1),
             _menuTile(Icons.show_chart, 'Geiger Counter', const Color(0xFFef4444), 2),
-            const Divider(color: Color(0xFF334155)),
             _menuTile(Icons.map, 'Map', const Color(0xFF3b82f6), 3),
-            _menuTile(Icons.block, 'Blacklist', const Color(0xFF64748b), -1),
+            const Divider(color: Color(0xFF334155)),
+            SwitchListTile(
+              secondary: const Icon(Icons.favorite, color: Color(0xFFec4899)),
+              title: const Text('Gay Friendly Only',
+                  style: TextStyle(color: Colors.white)),
+              value: ref.watch(gayFriendlyFilterProvider),
+              activeColor: const Color(0xFFec4899),
+              onChanged: (val) {
+                ref.read(gayFriendlyFilterProvider.notifier).state = val;
+                ref.read(selectedBarIndexProvider.notifier).state = 0;
+                ref.invalidate(top5BarsProvider);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.block, color: Color(0xFFef4444)),
+              title: const Text('Blacklist', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => const BlacklistView()));
+              },
+            ),
           ],
         ),
       ),
