@@ -30,33 +30,37 @@ class LocationService {
       return;
     }
 
-    // Emit last known position immediately so the UI isn't blank while
-    // waiting for a fresh fix.
-    final last = await Geolocator.getLastKnownPosition();
-    if (last != null) {
-      _lastKnown = last;
-      _controller.add(last);
-    }
-
-    if (_lastKnown == null) {
-      try {
-        final current = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.best,
-        );
-        _lastKnown = current;
-        _controller.add(current);
-      } catch (_) {}
-    }
-
+    // Start the continuous stream first so we never miss a position event.
+    // distanceFilter: 0 ensures Android delivers the very first fix
+    // immediately rather than waiting until the device has moved 10m.
     _positionSubscription = Geolocator.getPositionStream(
       locationSettings: const LocationSettings(
         accuracy: LocationAccuracy.best,
-        distanceFilter: 10,
+        distanceFilter: 0,
       ),
     ).listen((position) {
       _lastKnown = position;
       _controller.add(position);
     }, onError: (_) {});
+
+    // Fire-and-forget: seed the stream with a cached position so the UI
+    // isn't blank while the GPS warms up. We do NOT await this — awaiting
+    // getCurrentPosition() before setting up getPositionStream() was the
+    // original bug: if getCurrentPosition() hangs, the stream subscription
+    // was never created and no positions ever arrived.
+    _seedPosition();
+  }
+
+  Future<void> _seedPosition() async {
+    // Try the fast path: last known position (immediate on most devices).
+    try {
+      final last = await Geolocator.getLastKnownPosition();
+      if (last != null && _lastKnown == null && _activeUsers > 0) {
+        _lastKnown = last;
+        _controller.add(last);
+        return;
+      }
+    } catch (_) {}
   }
 
   /// Stop listening. Safe to call multiple times concurrently — only

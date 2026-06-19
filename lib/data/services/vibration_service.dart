@@ -32,16 +32,17 @@ class VibrationService {
   }
 
   // Closer = faster pulses (150ms gap) | Far away = slow pulses (2000ms gap)
+  // Range is 0–100 m; caller already stops vibration beyond 100 m.
   int _intervalForDistance(int distanceMeters) {
-    final clamped = distanceMeters.clamp(0, 50000);
-    final ratio = clamped / 50000;
+    final clamped = distanceMeters.clamp(0, 100);
+    final ratio = clamped / 100;
     return (150 + ratio * (2000 - 150)).round();
   }
 
   // Closer = stronger buzz (255) | Far away = weak buzz (32)
   int _amplitudeForDistance(int distanceMeters) {
-    final clamped = distanceMeters.clamp(0, 50000);
-    final ratio = clamped / 50000;
+    final clamped = distanceMeters.clamp(0, 100);
+    final ratio = clamped / 100;
     return (255 - ratio * (255 - 32)).round();
   }
 }

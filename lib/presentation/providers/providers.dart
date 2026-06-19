@@ -13,20 +13,24 @@ import 'package:flutter_compass/flutter_compass.dart';
 
 final currentPositionProvider = StreamProvider((ref) {
   final service = ref.watch(locationServiceProvider);
-  service.start();
+  // Do NOT call service.start() here — this provider is watched before
+  // permission is confirmed. Without permission, getPositionStream() fires
+  // an error and closes the stream permanently. GPS is started by
+  // app.dart's _startLocation() after permission is verified.
   return service.positionStream;
 });
  
-/// Device compass heading in degrees (0-360, 0 = true/magnetic north),
-/// null if the sensor reports no data. This is intentionally separate
-/// from locationServiceProvider since heading comes from the
-/// magnetometer, not GPS, and nothing else in the app currently needs it.
-final deviceHeadingProvider = StreamProvider<double?>((ref) {
+/// Device compass heading in degrees (0-360, 0 = true/magnetic north).
+/// Filters out null events (sensor warming up / low accuracy) so the
+/// provider stays in AsyncLoading until a real heading is available.
+final deviceHeadingProvider = StreamProvider<double>((ref) {
   final events = FlutterCompass.events;
   if (events == null) {
     throw Exception('Compass sensor not available on this device.');
   }
-  return events.map((event) => event.heading);
+  return events
+      .where((event) => event.heading != null)
+      .map((event) => event.heading!);
 });
 
 final barRepositoryProvider = Provider<BarRepository>(
@@ -78,8 +82,10 @@ class NearestBarInfo {
 
 // -- Nearest bar info (bar + distance meters; null = no bars nearby) --
 final nearestBarProvider = FutureProvider.autoDispose<NearestBarInfo?>((ref) async {
-  // Waits for the first GPS position — keeps provider in loading state until then.
-  final pos = await ref.watch(locationStreamProvider.future);
+  // ref.read (not ref.watch) so this provider only re-runs on explicit
+  // ref.invalidate() calls (every 30 s). ref.watch would restart it on every
+  // GPS position event, cycling vibrationService stop→start at the GPS rate.
+  final pos = await ref.read(locationStreamProvider.future);
 
   final repo = ref.read(barRepositoryProvider);
   // Fetch all bars (uses cache when available) and compute nearest locally.
@@ -117,7 +123,7 @@ final vibrationTriggerProvider = Provider.autoDispose<void>((ref) {
         return;
       }
       final absDistance = info.distanceMeters.abs();
-      if (absDistance <= 50000) {
+      if (absDistance <= 100) {
         vibrationService.updateForDistance(absDistance);
       } else {
         vibrationService.stop();

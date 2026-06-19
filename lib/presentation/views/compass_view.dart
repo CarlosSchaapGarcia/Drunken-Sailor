@@ -107,11 +107,11 @@ class _CompassViewState extends ConsumerState<CompassView> {
   Widget _buildMarker(
     AsyncValue<dynamic> nearestAsync,
     AsyncValue<dynamic> positionAsync,
-    AsyncValue<double?> headingAsync,
+    AsyncValue<double> headingAsync,
   ) {
     final info = nearestAsync.valueOrNull;
     final position = positionAsync.valueOrNull;
-    final heading = headingAsync.valueOrNull;
+    final heading = headingAsync.valueOrNull; // null only while loading/error
 
     final hasFix = info != null && position != null && heading != null;
 
@@ -129,8 +129,8 @@ class _CompassViewState extends ConsumerState<CompassView> {
       toLat: info.bar.latitude,
       toLng: info.bar.longitude,
     );
-    // Normalized target, purely as a starting point for unwrapping below.
-    final normalizedRotation = (bearingToTarget - heading + 360) % 360;
+    // hasFix guarantees heading != null
+    final normalizedRotation = (bearingToTarget - heading! + 360) % 360;
 
     final rotation = _unwrap(normalizedRotation);
     _lastRotation = rotation;
