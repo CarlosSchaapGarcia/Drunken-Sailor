@@ -8,12 +8,13 @@ import 'providers/providers.dart';
 import 'views/compass_view.dart';
 import 'views/radar_view.dart';
 import 'views/geiger_view.dart';
+import 'views/map_view.dart';
 import 'widgets/error_display.dart';
 import 'widgets/loading_spinner.dart';
 import 'widgets/location_debug_overlay.dart';
 import 'widgets/location_permission_dialog.dart';
 
-enum ViewMode { compass, radar, geiger }
+enum ViewMode { compass, radar, geiger, map }
 
 class DrunkenSailorApp extends ConsumerStatefulWidget {
   const DrunkenSailorApp({Key? key}) : super(key: key);
@@ -34,16 +35,18 @@ class _DrunkenSailorAppState extends ConsumerState<DrunkenSailorApp>
   static const _longPressDuration = Duration(seconds: 5);
   static const _barFetchInterval = Duration(seconds: 30);
 
-  final _views = [ViewMode.compass, ViewMode.radar, ViewMode.geiger];
+  final _views = [ViewMode.compass, ViewMode.radar, ViewMode.geiger, ViewMode.map];
   final _viewTitles = {
     ViewMode.compass: 'Pirate Compass',
     ViewMode.radar: 'Submarine Radar',
     ViewMode.geiger: 'Nuclear Counter',
+    ViewMode.map: 'Bar Map',
   };
   final _viewThemes = {
     ViewMode.compass: 'pirate',
     ViewMode.radar: 'submarine',
     ViewMode.geiger: 'nuclear',
+    ViewMode.map: 'pirate',
   };
 
   @override
@@ -180,6 +183,7 @@ class _DrunkenSailorAppState extends ConsumerState<DrunkenSailorApp>
                 const Center(child: CompassView()),
                 const Center(child: RadarView()),
                 const Center(child: GeigerView()),
+                const MapView(),
               ],
             ),
           ),
@@ -325,7 +329,7 @@ class _DrunkenSailorAppState extends ConsumerState<DrunkenSailorApp>
             _menuTile(Icons.radar, 'Radar', const Color(0xFF10b981), 1),
             _menuTile(Icons.show_chart, 'Geiger Counter', const Color(0xFFef4444), 2),
             const Divider(color: Color(0xFF334155)),
-            _menuTile(Icons.map, 'Map', const Color(0xFF64748b), -1),
+            _menuTile(Icons.map, 'Map', const Color(0xFF3b82f6), 3),
             _menuTile(Icons.block, 'Blacklist', const Color(0xFF64748b), -1),
           ],
         ),

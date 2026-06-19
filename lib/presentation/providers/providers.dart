@@ -133,6 +133,10 @@ final vibrationTriggerProvider = Provider.autoDispose<void>((ref) {
   );
 });
 
+final allBarsProvider = FutureProvider<List<Bar>>((ref) {
+  return ref.read(barRepositoryProvider).getAllBars();
+});
+
 final openBarPositionsProvider = StreamProvider<List<BarRelativePosition>>((ref) {
   final locationStream = ref.watch(locationStreamProvider.stream);
 
