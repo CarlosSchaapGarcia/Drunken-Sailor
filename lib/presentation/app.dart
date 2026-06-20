@@ -172,24 +172,26 @@ class _DrunkenSailorAppState extends ConsumerState<DrunkenSailorApp>
 
     final scaffold = Scaffold(
       drawer: _buildMenu(),
-      body: Column(
-        children: [
-          _buildNavBar(),
-          _buildDistanceIndicator(nearestAsync),
-          Expanded(
-            child: PageView(
-              controller: _pageController,
-              onPageChanged: _onPageChanged,
-              children: [
-                const Center(child: CompassView()),
-                const Center(child: RadarView()),
-                const Center(child: GeigerView()),
-                const MapView(),
-              ],
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildNavBar(),
+            _buildDistanceIndicator(nearestAsync),
+            Expanded(
+              child: PageView(
+                controller: _pageController,
+                onPageChanged: _onPageChanged,
+                children: [
+                  const Center(child: CompassView()),
+                  const Center(child: RadarView()),
+                  const Center(child: GeigerView()),
+                  const MapView(),
+                ],
+              ),
             ),
-          ),
-          _buildDots(),
-        ],
+            _buildDots(),
+          ],
+        ),
       ),
     );
 
