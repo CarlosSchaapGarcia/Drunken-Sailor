@@ -14,7 +14,8 @@ dependencies:
   vibration: ^2.0.0
   
   # UI and Navigation
-  google_maps_flutter: ^2.5.0
+  flutter_map: ^6.1.0
+  latlong2: ^0.9.0
   geolocator: ^9.0.2
   
   # Sensors - magnetometer for compass heading

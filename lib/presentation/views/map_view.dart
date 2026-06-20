@@ -1,27 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart' hide Path;
 import '../providers/providers.dart';
-
-// Dark map style matching the app's navy/slate colour scheme
-const _mapStyle = '''
-[
-  {"elementType":"geometry","stylers":[{"color":"#0f172a"}]},
-  {"elementType":"labels.text.stroke","stylers":[{"color":"#0f172a"}]},
-  {"elementType":"labels.text.fill","stylers":[{"color":"#64748b"}]},
-  {"featureType":"administrative","elementType":"labels.text.fill","stylers":[{"color":"#94a3b8"}]},
-  {"featureType":"poi","stylers":[{"visibility":"off"}]},
-  {"featureType":"road","elementType":"geometry","stylers":[{"color":"#1e293b"}]},
-  {"featureType":"road","elementType":"geometry.stroke","stylers":[{"color":"#0f172a"}]},
-  {"featureType":"road","elementType":"labels.text.fill","stylers":[{"color":"#475569"}]},
-  {"featureType":"road.highway","elementType":"geometry","stylers":[{"color":"#334155"}]},
-  {"featureType":"road.highway","elementType":"geometry.stroke","stylers":[{"color":"#0f172a"}]},
-  {"featureType":"road.highway","elementType":"labels.text.fill","stylers":[{"color":"#94a3b8"}]},
-  {"featureType":"transit","stylers":[{"visibility":"off"}]},
-  {"featureType":"water","elementType":"geometry","stylers":[{"color":"#0c1a2e"}]},
-  {"featureType":"water","elementType":"labels.text.fill","stylers":[{"color":"#1e3a5f"}]}
-]
-''';
 
 class MapView extends ConsumerStatefulWidget {
   const MapView({Key? key}) : super(key: key);
@@ -31,12 +12,12 @@ class MapView extends ConsumerStatefulWidget {
 }
 
 class _MapViewState extends ConsumerState<MapView> {
-  GoogleMapController? _controller;
+  final _mapController = MapController();
   bool _centeredOnUser = false;
 
   @override
   void dispose() {
-    _controller?.dispose();
+    _mapController.dispose();
     super.dispose();
   }
 
@@ -46,67 +27,130 @@ class _MapViewState extends ConsumerState<MapView> {
     final barsAsync = ref.watch(allBarsProvider);
     final nearestAsync = ref.watch(nearestBarProvider);
 
+    // Move camera to user on first GPS fix
     ref.listen(currentPositionProvider, (_, next) {
       final pos = next.valueOrNull;
-      if (pos != null && !_centeredOnUser && _controller != null) {
+      if (pos != null && !_centeredOnUser) {
         _centeredOnUser = true;
-        _controller!.animateCamera(
-          CameraUpdate.newLatLngZoom(LatLng(pos.latitude, pos.longitude), 16),
-        );
+        _mapController.move(LatLng(pos.latitude, pos.longitude), 16);
       }
     });
 
     final now = DateTime.now();
     final nearestBar = nearestAsync.valueOrNull?.bar;
     final bars = barsAsync.valueOrNull ?? [];
+    final userPos = positionAsync.valueOrNull;
 
-    final markers = bars.map((bar) {
-      final isOpen = bar.isOpenAt(now);
-      final isNearest = bar.id == nearestBar?.id;
-      return Marker(
-        markerId: MarkerId(bar.id),
-        position: LatLng(bar.latitude, bar.longitude),
-        infoWindow: InfoWindow(
-          title: bar.name,
-          snippet: isOpen ? 'Open now' : 'Closed',
-        ),
-        icon: BitmapDescriptor.defaultMarkerWithHue(
-          isNearest
-              ? BitmapDescriptor.hueGreen
-              : isOpen
-                  ? BitmapDescriptor.hueOrange
-                  : BitmapDescriptor.hueRed,
-        ),
-      );
-    }).toSet();
-
-    final initialPos = positionAsync.valueOrNull;
-    final cameraTarget = initialPos != null
-        ? LatLng(initialPos.latitude, initialPos.longitude)
+    final initialCenter = userPos != null
+        ? LatLng(userPos.latitude, userPos.longitude)
         : const LatLng(51.4416, 5.4697); // fallback: Eindhoven
 
-    return Container(
-      color: const Color(0xFF0f172a),
-      child: GoogleMap(
-        initialCameraPosition: CameraPosition(target: cameraTarget, zoom: 15),
-        markers: markers,
-        myLocationEnabled: true,
-        myLocationButtonEnabled: true,
-        mapType: MapType.normal,
-        zoomControlsEnabled: false,
-        compassEnabled: false,
-        onMapCreated: (controller) {
-          _controller = controller;
-          controller.setMapStyle(_mapStyle);
-          final pos = positionAsync.valueOrNull;
-          if (pos != null) {
-            _centeredOnUser = true;
-            controller.animateCamera(
-              CameraUpdate.newLatLngZoom(LatLng(pos.latitude, pos.longitude), 16),
-            );
-          }
-        },
+    return FlutterMap(
+      mapController: _mapController,
+      options: MapOptions(
+        initialCenter: initialCenter,
+        initialZoom: 15,
+        backgroundColor: const Color(0xFF0f172a),
       ),
+      children: [
+        TileLayer(
+          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+          userAgentPackageName: 'com.example.drunken_sailor',
+          tileBuilder: _darkTileBuilder,
+        ),
+        MarkerLayer(
+          markers: [
+            // User position marker
+            if (userPos != null)
+              Marker(
+                point: LatLng(userPos.latitude, userPos.longitude),
+                width: 20,
+                height: 20,
+                child: Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: const Color(0xFF3b82f6),
+                    border: Border.all(color: Colors.white, width: 2),
+                  ),
+                ),
+              ),
+            // Bar markers
+            ...bars.map((bar) {
+              final isNearest = bar.id == nearestBar?.id;
+              final isOpen = bar.isOpenAt(now);
+              final color = isNearest
+                  ? const Color(0xFF10b981)
+                  : isOpen
+                      ? const Color(0xFFf97316)
+                      : const Color(0xFFef4444);
+
+              return Marker(
+                point: LatLng(bar.latitude, bar.longitude),
+                width: isNearest ? 120 : 100,
+                height: isNearest ? 52 : 44,
+                child: Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1e293b),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: color, width: isNearest ? 2 : 1),
+                      ),
+                      child: Text(
+                        bar.name,
+                        style: TextStyle(
+                          color: color,
+                          fontSize: isNearest ? 11 : 10,
+                          fontWeight: isNearest ? FontWeight.bold : FontWeight.normal,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    CustomPaint(
+                      size: const Size(10, 6),
+                      painter: _TrianglePainter(color: color),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+        ),
+      ],
     );
   }
+
+  // Darkens OSM tiles to match the app's colour scheme
+  Widget _darkTileBuilder(BuildContext context, Widget tileWidget, TileImage tile) {
+    return ColorFiltered(
+      colorFilter: const ColorFilter.matrix([
+        0.25, 0, 0, 0, 0,
+        0, 0.30, 0, 0, 0,
+        0, 0, 0.40, 0, 0,
+        0, 0, 0, 1, 0,
+      ]),
+      child: tileWidget,
+    );
+  }
+}
+
+class _TrianglePainter extends CustomPainter {
+  final Color color;
+  const _TrianglePainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = color;
+    final path = Path()
+      ..moveTo(0, 0)
+      ..lineTo(size.width, 0)
+      ..lineTo(size.width / 2, size.height)
+      ..close();
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(_TrianglePainter old) => old.color != color;
 }
