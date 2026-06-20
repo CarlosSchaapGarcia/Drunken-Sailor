@@ -234,12 +234,7 @@ class _DrunkenSailorAppState extends ConsumerState<DrunkenSailorApp>
             _viewTitles[_currentView]!,
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white),
           ),
-          Row(
-            children: [
-              IconButton(icon: const Icon(Icons.location_on, size: 24), onPressed: () {}),
-              IconButton(icon: const Icon(Icons.list, size: 24), onPressed: () {}),
-            ],
-          ),
+          const SizedBox(width: 40),
         ],
       ),
     );
