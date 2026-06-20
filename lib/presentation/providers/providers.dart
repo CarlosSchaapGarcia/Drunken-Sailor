@@ -119,12 +119,17 @@ final top5BarsProvider = FutureProvider.autoDispose<List<NearestBarInfo>>((ref) 
 
   final pos = await ref.read(locationStreamProvider.future);
   final repo = ref.read(barRepositoryProvider);
-  final all = await repo.getAllBars();
+  final all = await repo.findNearbyBars(
+    pos.latitude,
+    pos.longitude,
+    gayFriendlyOnly: gayFilter,
+    radiusKm: 5.0,
+    limit: null,
+  );
 
   var pool = all.where((b) =>
     !b.isBlacklisted &&
-    !blacklist.contains(b.id) &&
-    (!gayFilter || b.gayFriendly)
+    !blacklist.contains(b.id)
   ).toList();
 
   if (pool.isEmpty) return [];
@@ -175,6 +180,18 @@ final vibrationTriggerProvider = Provider.autoDispose<void>((ref) {
 
 final allBarsProvider = FutureProvider<List<Bar>>((ref) {
   return ref.read(barRepositoryProvider).getAllBars();
+});
+
+// Fetches bars within 10 km of the user for the map view.
+// Uses the geohash query so only nearby bars are loaded — no full dump.
+final nearbyBarsForMapProvider = FutureProvider<List<Bar>>((ref) async {
+  final pos = await ref.read(locationStreamProvider.future);
+  return ref.read(barRepositoryProvider).findNearbyBars(
+    pos.latitude,
+    pos.longitude,
+    radiusKm: 10.0,
+    limit: null,
+  );
 });
 
 final openBarPositionsProvider = StreamProvider<List<BarRelativePosition>>((ref) {

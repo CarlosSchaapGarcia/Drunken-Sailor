@@ -24,7 +24,7 @@ class _MapViewState extends ConsumerState<MapView> {
   @override
   Widget build(BuildContext context) {
     final positionAsync = ref.watch(currentPositionProvider);
-    final barsAsync = ref.watch(allBarsProvider);
+    final barsAsync = ref.watch(nearbyBarsForMapProvider);
     final nearestAsync = ref.watch(nearestBarProvider);
 
     // Move camera to user on first GPS fix
