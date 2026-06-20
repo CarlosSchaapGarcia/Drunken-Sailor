@@ -181,6 +181,12 @@ class _DrunkenSailorAppState extends ConsumerState<DrunkenSailorApp>
               child: PageView(
                 controller: _pageController,
                 onPageChanged: _onPageChanged,
+                // Map page owns all pan gestures for panning; disable swipe
+                // navigation there so flutter_map doesn't fight PageView.
+                // The dot indicators at the bottom still work on every page.
+                physics: _currentView == ViewMode.map
+                    ? const NeverScrollableScrollPhysics()
+                    : const ClampingScrollPhysics(),
                 children: [
                   const Center(child: CompassView()),
                   const Center(child: RadarView()),
