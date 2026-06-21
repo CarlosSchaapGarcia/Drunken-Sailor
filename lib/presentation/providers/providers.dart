@@ -77,13 +77,6 @@ final currentThemeProvider = StateProvider<String>((ref) => 'pirate');
 
 final showDebugOverlayProvider = StateProvider<bool>((ref) => false);
 
-/// TEST MODE: when true, the compass needle points to true north (bearing
-/// 0°) instead of the nearest bar. Useful for isolating whether the device
-/// heading sensor itself is correct, independent of bar-finding/bearing
-/// logic. Toggle this from a debug button/menu, then remove or hardcode to
-/// false before shipping.
-final compassPointsNorthDebugProvider = StateProvider<bool>((ref) => false);
-
 // -- Location stream --
 
 final locationStreamProvider = StreamProvider<Position>((ref) {
@@ -282,17 +275,7 @@ const double _headingSmoothingFactor = 0.2;
 ///   promptly rather than easing into them.
 final compassNeedleProvider = StreamProvider.autoDispose<double?>((ref) {
   final headingStream = ref.watch(headingStreamProvider.stream);
-  final pointNorth = ref.watch(compassPointsNorthDebugProvider);
-
-  // TEST MODE: feed a constant bearing of 0° (true north) instead of the
-  // real bar-bearing stream. This isolates the heading sensor — if the
-  // needle correctly tracks north as you rotate the phone in this mode,
-  // the sensor/heading pipeline is good and any remaining bug is in the
-  // bar-finding or bearing-calculation logic instead.
-  final bearingStream = pointNorth
-      ? Stream<double?>.value(0.0)
-      : ref.watch(nearestBarBearingProvider.stream);
-
+  final bearingStream = ref.watch(nearestBarBearingProvider.stream);
   return _combineHeadingAndBearing(headingStream, bearingStream);
 });
 
