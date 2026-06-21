@@ -187,21 +187,20 @@ final nearbyBarsForMapProvider = FutureProvider<List<Bar>>((ref) async {
 
 final openBarPositionsProvider = StreamProvider<List<BarRelativePosition>>((ref) {
   final locationStream = ref.watch(locationStreamProvider.stream);
+  // Bars are loaded once via allBarsProvider (cached) rather than re-fetched
+  // on every GPS fix. Position geometry is recomputed synchronously per fix.
+  final bars = ref.watch(allBarsProvider).valueOrNull ?? [];
 
-  return locationStream.asyncMap((pos) async {
-    final repo = ref.read(barRepositoryProvider);
-    final all = await repo.getAllBars();
-
-    final positions = all.map((bar) => BarRelativePosition.fromBar(
-          bar,
-          pos.latitude,
-          pos.longitude,
-          0.0,
-          maxRangeMeters: 5000,
-        )).toList();
-
-    return positions.where((p) => p.visible).toList();
-  });
+  return locationStream.map((pos) => bars
+      .map((bar) => BarRelativePosition.fromBar(
+            bar,
+            pos.latitude,
+            pos.longitude,
+            0.0,
+            maxRangeMeters: 5000,
+          ))
+      .where((p) => p.visible)
+      .toList());
 });
 
 // -- Compass Heading (magnetometer + accelerometer) --
