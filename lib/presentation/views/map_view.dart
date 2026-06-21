@@ -24,7 +24,7 @@ class _MapViewState extends ConsumerState<MapView> {
   }
 
   void _resetView() {
-    final pos = ref.read(currentPositionProvider).valueOrNull;
+    final pos = ref.read(locationStreamProvider).valueOrNull;
     if (pos != null) {
       _mapController.move(LatLng(pos.latitude, pos.longitude), 16);
     }
@@ -32,12 +32,12 @@ class _MapViewState extends ConsumerState<MapView> {
 
   @override
   Widget build(BuildContext context) {
-    final positionAsync = ref.watch(currentPositionProvider);
+    final positionAsync = ref.watch(locationStreamProvider);
     final barsAsync = ref.watch(nearbyBarsForMapProvider);
     final nearestAsync = ref.watch(nearestBarProvider);
 
     // Move camera to user on first GPS fix
-    ref.listen(currentPositionProvider, (_, next) {
+    ref.listen(locationStreamProvider, (_, next) {
       final pos = next.valueOrNull;
       if (pos != null && !_centeredOnUser) {
         _centeredOnUser = true;

@@ -12,15 +12,6 @@ import '../../domain/repositories/bar_repository.dart';
 
 import 'package:flutter_compass/flutter_compass.dart';
 
-final currentPositionProvider = StreamProvider((ref) {
-  final service = ref.watch(locationServiceProvider);
-  // Do NOT call service.start() here — this provider is watched before
-  // permission is confirmed. Without permission, getPositionStream() fires
-  // an error and closes the stream permanently. GPS is started by
-  // app.dart's _startLocation() after permission is verified.
-  return service.positionStream;
-});
- 
 /// Device compass heading in degrees (0-360, 0 = true/magnetic north).
 /// Filters out null events (sensor warming up / low accuracy) so the
 /// provider stays in AsyncLoading until a real heading is available.
