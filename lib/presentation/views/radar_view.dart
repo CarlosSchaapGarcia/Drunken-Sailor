@@ -57,7 +57,6 @@ class _RadarViewState extends ConsumerState<RadarView>
 
   @override
   void dispose() {
-    _controller.removeListener(() => _checkPings(_currentTargets));
     _controller.dispose();
     super.dispose();
   }
