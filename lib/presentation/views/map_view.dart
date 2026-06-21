@@ -136,7 +136,7 @@ class _MapViewState extends ConsumerState<MapView> {
           top: 12,
           left: 12,
           child: _MapButton(
-            icon: Icons.radiation,
+            icon: Icons.track_changes,
             tooltip: 'Geiger Counter',
             onTap: widget.onGoToGeiger,
           ),
