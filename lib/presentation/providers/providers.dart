@@ -75,8 +75,6 @@ final selectedBarIndexProvider = StateProvider<int>((ref) => 0);
 
 final currentThemeProvider = StateProvider<String>((ref) => 'pirate');
 
-final selectedBarProvider = StateProvider<Bar?>((ref) => null);
-
 final showDebugOverlayProvider = StateProvider<bool>((ref) => false);
 
 /// TEST MODE: when true, the compass needle points to true north (bearing
