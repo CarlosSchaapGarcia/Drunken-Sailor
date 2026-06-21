@@ -191,7 +191,7 @@ class _DrunkenSailorAppState extends ConsumerState<DrunkenSailorApp>
                   const Center(child: CompassView()),
                   const Center(child: RadarView()),
                   const Center(child: GeigerView()),
-                  const MapView(),
+                  MapView(onGoToGeiger: () => _swipeToView(2)),
                 ],
               ),
             ),
