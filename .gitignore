@@ -23,7 +23,7 @@ ios/Flutter/ephemeral/
 android/.gradle
 android/gradlew.bat
 android/local.properties
-android/key.properties
+# android/key.properties intentionally tracked — demo app, no billing attached
 .android/
 android/app/debug
 android/app/profile
