@@ -166,7 +166,16 @@ class _DrunkenSailorAppState extends ConsumerState<DrunkenSailorApp>
   Widget build(BuildContext context) {
     final showDebug = ref.watch(showDebugOverlayProvider);
     final nearestAsync = ref.watch(nearestBarProvider);
-    
+
+    // Reset bar selection to 0 whenever the filtered list changes (e.g. filter
+    // toggled, bar blacklisted). Without this the index can silently point at a
+    // different bar after the list shrinks and grows back.
+    ref.listen<AsyncValue<List<NearestBarInfo>>>(top5BarsProvider, (_, next) {
+      if (next is AsyncData) {
+        ref.read(selectedBarIndexProvider.notifier).state = 0;
+      }
+    });
+
     // Watch vibration trigger to update on distance changes
     ref.watch(vibrationTriggerProvider);
 
