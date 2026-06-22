@@ -42,6 +42,19 @@ This takes 10–15 minutes the first time. Only needed again if `Dockerfile` cha
 
 ## Building and running on your phone
 
+### Run directly with Flutter
+
+If you have Flutter installed locally, you can also run the application directly on a connected device.
+
+1. Check that Flutter can see your device:
+   ```powershell
+   flutter devices
+   ```
+2. Run the app:
+   ```powershell
+   flutter run
+   ```
+
 ### Build the APK
 
 ```powershell
