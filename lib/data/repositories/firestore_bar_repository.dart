@@ -71,11 +71,14 @@ class FirestoreBarRepository implements BarRepository {
       }
     }
     if (bars.isEmpty) {
-      // Geohash returned nothing — either bars lack the geohash field or we're
-      // offline. getAllBars handles caching and throws BarServiceException when
-      // truly offline with no cache, which propagates to the error state.
+      // Geohash query returned nothing — bars may lack the geohash field, the
+      // composite index for gay_friendly+geohash may be missing, or we're offline.
+      // Fall back to a full fetch but honour all filters so nothing leaks through.
       final all = await getAllBars();
-      final nearby = all.where((b) => b.distanceTo(lat, lng) <= radiusM).toList();
+      final nearby = all.where((b) =>
+        b.distanceTo(lat, lng) <= radiusM &&
+        (!gayFriendlyOnly || b.gayFriendly)
+      ).toList();
       nearby.sort((a, b) => a.distanceTo(lat, lng).compareTo(b.distanceTo(lat, lng)));
       return limit != null ? nearby.take(limit).toList() : nearby;
     }

@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:geolocator/geolocator.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../data/repositories/firestore_bar_repository.dart';
 import '../../data/services/heading_service.dart';
 import '../../data/services/location_service.dart';
@@ -11,15 +12,6 @@ import '../../domain/repositories/bar_repository.dart';
 
 import 'package:flutter_compass/flutter_compass.dart';
 
-final currentPositionProvider = StreamProvider((ref) {
-  final service = ref.watch(locationServiceProvider);
-  // Do NOT call service.start() here — this provider is watched before
-  // permission is confirmed. Without permission, getPositionStream() fires
-  // an error and closes the stream permanently. GPS is started by
-  // app.dart's _startLocation() after permission is verified.
-  return service.positionStream;
-});
- 
 /// Device compass heading in degrees (0-360, 0 = true/magnetic north).
 /// Filters out null events (sensor warming up / low accuracy) so the
 /// provider stays in AsyncLoading until a real heading is available.
@@ -49,20 +41,41 @@ final vibrationServiceProvider = Provider<VibrationService>(
   (ref) => VibrationService(),
 );
 
+// -- Blacklist (personal, persisted to SharedPreferences) --
+
+class BlacklistNotifier extends StateNotifier<Set<String>> {
+  static const _key = 'blacklisted_bar_ids';
+  BlacklistNotifier() : super(const {}) { _load(); }
+
+  Future<void> _load() async {
+    final prefs = await SharedPreferences.getInstance();
+    final ids = prefs.getStringList(_key) ?? [];
+    if (mounted) state = ids.toSet();
+  }
+
+  Future<void> toggle(String barId) async {
+    final updated = Set<String>.from(state);
+    if (updated.contains(barId)) { updated.remove(barId); } else { updated.add(barId); }
+    state = updated;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(_key, updated.toList());
+  }
+}
+
+final blacklistedBarIdsProvider =
+    StateNotifierProvider<BlacklistNotifier, Set<String>>(
+  (ref) => BlacklistNotifier(),
+);
+
 // -- UI state providers --
+
+final gayFriendlyFilterProvider = StateProvider<bool>((ref) => false);
+
+final selectedBarIndexProvider = StateProvider<int>((ref) => 0);
 
 final currentThemeProvider = StateProvider<String>((ref) => 'pirate');
 
-final selectedBarProvider = StateProvider<Bar?>((ref) => null);
-
 final showDebugOverlayProvider = StateProvider<bool>((ref) => false);
-
-/// TEST MODE: when true, the compass needle points to true north (bearing
-/// 0°) instead of the nearest bar. Useful for isolating whether the device
-/// heading sensor itself is correct, independent of bar-finding/bearing
-/// logic. Toggle this from a debug button/menu, then remove or hardcode to
-/// false before shipping.
-final compassPointsNorthDebugProvider = StateProvider<bool>((ref) => false);
 
 // -- Location stream --
 
@@ -80,35 +93,49 @@ class NearestBarInfo {
   NearestBarInfo({required this.bar, required this.distanceMeters});
 }
 
-// -- Nearest bar info (bar + distance meters; null = no bars nearby) --
-final nearestBarProvider = FutureProvider.autoDispose<NearestBarInfo?>((ref) async {
-  // ref.read (not ref.watch) so this provider only re-runs on explicit
-  // ref.invalidate() calls (every 30 s). ref.watch would restart it on every
-  // GPS position event, cycling vibrationService stop→start at the GPS rate.
-  final pos = await ref.read(locationStreamProvider.future);
+// -- Top 5 nearest bars after applying gay-friendly and blacklist filters --
+final top5BarsProvider = FutureProvider.autoDispose<List<NearestBarInfo>>((ref) async {
+  // Watches set up before any await so Riverpod tracks them correctly.
+  final gayFilter = ref.watch(gayFriendlyFilterProvider);
+  final blacklist = ref.watch(blacklistedBarIdsProvider);
 
+  final pos = await ref.read(locationStreamProvider.future);
   final repo = ref.read(barRepositoryProvider);
-  // Fetch all bars (uses cache when available) and compute nearest locally.
-  final all = await repo.getAllBars();
-  if (all.isEmpty) return null;
+  final all = await repo.findNearbyBars(
+    pos.latitude,
+    pos.longitude,
+    gayFriendlyOnly: gayFilter,
+    radiusKm: 5.0,
+    limit: null,
+  );
+
+  var pool = all.where((b) =>
+    !b.isBlacklisted &&
+    !blacklist.contains(b.id)
+  ).toList();
+
+  if (pool.isEmpty) return [];
 
   final now = DateTime.now();
-  // Prefer open bars; fall back to any bar if none open
-  final open = all.where((b) => b.isOpenAt(now)).toList();
-  final candidates = open.isNotEmpty ? open : all;
+  final open = pool.where((b) => b.isOpenAt(now)).toList();
+  final candidates = open.isNotEmpty ? open : pool;
 
-  // Find nearest candidate
-  Bar nearest = candidates.first;
-  var bestDist = nearest.distanceTo(pos.latitude, pos.longitude);
-  for (final b in candidates.skip(1)) {
-    final d = b.distanceTo(pos.latitude, pos.longitude);
-    if (d < bestDist) {
-      nearest = b;
-      bestDist = d;
-    }
-  }
+  candidates.sort((a, b) =>
+    a.distanceTo(pos.latitude, pos.longitude)
+     .compareTo(b.distanceTo(pos.latitude, pos.longitude)));
 
-  return NearestBarInfo(bar: nearest, distanceMeters: open.isNotEmpty ? bestDist : -bestDist);
+  return candidates.take(5).map((bar) {
+    final dist = bar.distanceTo(pos.latitude, pos.longitude);
+    return NearestBarInfo(bar: bar, distanceMeters: open.isNotEmpty ? dist : -dist);
+  }).toList();
+});
+
+// -- Selected bar from top 5 (index 0 = nearest) --
+final nearestBarProvider = FutureProvider.autoDispose<NearestBarInfo?>((ref) async {
+  final index = ref.watch(selectedBarIndexProvider);
+  final bars = await ref.watch(top5BarsProvider.future);
+  if (bars.isEmpty) return null;
+  return bars[index.clamp(0, bars.length - 1)];
 });
 
 // -- Vibration trigger on distance change --
@@ -133,27 +160,38 @@ final vibrationTriggerProvider = Provider.autoDispose<void>((ref) {
   );
 });
 
+final allBarsProvider = FutureProvider<List<Bar>>((ref) {
+  return ref.read(barRepositoryProvider).getAllBars();
+});
+
+// Fetches bars within 10 km of the user for the map view.
+// Uses the geohash query so only nearby bars are loaded — no full dump.
+final nearbyBarsForMapProvider = FutureProvider<List<Bar>>((ref) async {
+  final pos = await ref.read(locationStreamProvider.future);
+  return ref.read(barRepositoryProvider).findNearbyBars(
+    pos.latitude,
+    pos.longitude,
+    radiusKm: 10.0,
+    limit: null,
+  );
+});
+
 final openBarPositionsProvider = StreamProvider<List<BarRelativePosition>>((ref) {
   final locationStream = ref.watch(locationStreamProvider.stream);
+  // Bars are loaded once via allBarsProvider (cached) rather than re-fetched
+  // on every GPS fix. Position geometry is recomputed synchronously per fix.
+  final bars = ref.watch(allBarsProvider).valueOrNull ?? [];
 
-  return locationStream.asyncMap((pos) async {
-    final repo = ref.read(barRepositoryProvider);
-    final all = await repo.getAllBars();
-
-    final positions = all.map((bar) => BarRelativePosition.fromBar(
-          bar,
-          pos.latitude,
-          pos.longitude,
-          0.0,
-          maxRangeMeters: 5000,
-        )).toList();
-
-    for (final p in positions) {
-      print('[Radar] ${p.bar.name}: distance=${p.distanceMeters.toInt()}m ratio=${p.distanceRatio.toStringAsFixed(2)} visible=${p.visible}');
-    }
-
-    return positions.where((p) => p.visible).toList();
-  });
+  return locationStream.map((pos) => bars
+      .map((bar) => BarRelativePosition.fromBar(
+            bar,
+            pos.latitude,
+            pos.longitude,
+            0.0,
+            maxRangeMeters: 5000,
+          ))
+      .where((p) => p.visible)
+      .toList());
 });
 
 // -- Compass Heading (magnetometer + accelerometer) --
@@ -237,17 +275,7 @@ const double _headingSmoothingFactor = 0.2;
 ///   promptly rather than easing into them.
 final compassNeedleProvider = StreamProvider.autoDispose<double?>((ref) {
   final headingStream = ref.watch(headingStreamProvider.stream);
-  final pointNorth = ref.watch(compassPointsNorthDebugProvider);
-
-  // TEST MODE: feed a constant bearing of 0° (true north) instead of the
-  // real bar-bearing stream. This isolates the heading sensor — if the
-  // needle correctly tracks north as you rotate the phone in this mode,
-  // the sensor/heading pipeline is good and any remaining bug is in the
-  // bar-finding or bearing-calculation logic instead.
-  final bearingStream = pointNorth
-      ? Stream<double?>.value(0.0)
-      : ref.watch(nearestBarBearingProvider.stream);
-
+  final bearingStream = ref.watch(nearestBarBearingProvider.stream);
   return _combineHeadingAndBearing(headingStream, bearingStream);
 });
 

@@ -69,7 +69,7 @@ class _CompassViewState extends ConsumerState<CompassView> {
   @override
   Widget build(BuildContext context) {
     final nearestAsync = ref.watch(nearestBarProvider);
-    final positionAsync = ref.watch(currentPositionProvider);
+    final positionAsync = ref.watch(locationStreamProvider);
     final headingAsync = ref.watch(deviceHeadingProvider);
 
     return SingleChildScrollView(

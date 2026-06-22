@@ -8,12 +8,14 @@ import 'providers/providers.dart';
 import 'views/compass_view.dart';
 import 'views/radar_view.dart';
 import 'views/geiger_view.dart';
+import 'views/map_view.dart';
+import 'views/blacklist_view.dart';
 import 'widgets/error_display.dart';
 import 'widgets/loading_spinner.dart';
 import 'widgets/location_debug_overlay.dart';
 import 'widgets/location_permission_dialog.dart';
 
-enum ViewMode { compass, radar, geiger }
+enum ViewMode { compass, radar, geiger, map }
 
 class DrunkenSailorApp extends ConsumerStatefulWidget {
   const DrunkenSailorApp({Key? key}) : super(key: key);
@@ -34,16 +36,18 @@ class _DrunkenSailorAppState extends ConsumerState<DrunkenSailorApp>
   static const _longPressDuration = Duration(seconds: 5);
   static const _barFetchInterval = Duration(seconds: 30);
 
-  final _views = [ViewMode.compass, ViewMode.radar, ViewMode.geiger];
+  final _views = [ViewMode.compass, ViewMode.radar, ViewMode.geiger, ViewMode.map];
   final _viewTitles = {
     ViewMode.compass: 'Pirate Compass',
     ViewMode.radar: 'Submarine Radar',
     ViewMode.geiger: 'Nuclear Counter',
+    ViewMode.map: 'Bar Map',
   };
   final _viewThemes = {
     ViewMode.compass: 'pirate',
     ViewMode.radar: 'submarine',
     ViewMode.geiger: 'nuclear',
+    ViewMode.map: 'pirate',
   };
 
   @override
@@ -124,7 +128,7 @@ class _DrunkenSailorAppState extends ConsumerState<DrunkenSailorApp>
       final now = DateTime.now();
       if (_lastBarFetch == null || now.difference(_lastBarFetch!) >= _barFetchInterval) {
         _lastBarFetch = now;
-        // Invalidate the nearest bar provider so it re-fetches with the new position.
+        ref.invalidate(top5BarsProvider);
         ref.invalidate(nearestBarProvider);
       }
     });
@@ -162,29 +166,47 @@ class _DrunkenSailorAppState extends ConsumerState<DrunkenSailorApp>
   Widget build(BuildContext context) {
     final showDebug = ref.watch(showDebugOverlayProvider);
     final nearestAsync = ref.watch(nearestBarProvider);
-    
+
+    // Reset bar selection to 0 whenever the filtered list changes (e.g. filter
+    // toggled, bar blacklisted). Without this the index can silently point at a
+    // different bar after the list shrinks and grows back.
+    ref.listen<AsyncValue<List<NearestBarInfo>>>(top5BarsProvider, (_, next) {
+      if (next is AsyncData) {
+        ref.read(selectedBarIndexProvider.notifier).state = 0;
+      }
+    });
+
     // Watch vibration trigger to update on distance changes
     ref.watch(vibrationTriggerProvider);
 
     final scaffold = Scaffold(
       drawer: _buildMenu(),
-      body: Column(
-        children: [
-          _buildNavBar(),
-          _buildDistanceIndicator(nearestAsync),
-          Expanded(
-            child: PageView(
-              controller: _pageController,
-              onPageChanged: _onPageChanged,
-              children: [
-                const Center(child: CompassView()),
-                const Center(child: RadarView()),
-                const Center(child: GeigerView()),
-              ],
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildNavBar(),
+            _buildDistanceIndicator(nearestAsync),
+            Expanded(
+              child: PageView(
+                controller: _pageController,
+                onPageChanged: _onPageChanged,
+                // Map page owns all pan gestures for panning; disable swipe
+                // navigation there so flutter_map doesn't fight PageView.
+                // The dot indicators at the bottom still work on every page.
+                physics: _currentView == ViewMode.map
+                    ? const NeverScrollableScrollPhysics()
+                    : const ClampingScrollPhysics(),
+                children: [
+                  const Center(child: CompassView()),
+                  const Center(child: RadarView()),
+                  const Center(child: GeigerView()),
+                  MapView(onGoToGeiger: () => _swipeToView(2)),
+                ],
+              ),
             ),
-          ),
-          _buildDots(),
-        ],
+            _buildDots(),
+          ],
+        ),
       ),
     );
 
@@ -229,56 +251,84 @@ class _DrunkenSailorAppState extends ConsumerState<DrunkenSailorApp>
             _viewTitles[_currentView]!,
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white),
           ),
-          Row(
-            children: [
-              IconButton(icon: const Icon(Icons.location_on, size: 24), onPressed: () {}),
-              IconButton(icon: const Icon(Icons.list, size: 24), onPressed: () {}),
-            ],
-          ),
+          const SizedBox(width: 40),
         ],
       ),
     );
   }
 
   Widget _buildDistanceIndicator(AsyncValue<dynamic> nearestAsync) {
+    final index = ref.watch(selectedBarIndexProvider);
+    final total = ref.watch(top5BarsProvider).valueOrNull?.length ?? 1;
+
     return Container(
       color: const Color(0xFF1e293b).withOpacity(0.5),
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: nearestAsync.when(
-        loading: () => const LoadingSpinner(),
-        error: (e, _) => ErrorDisplay(
-          message: 'Could not find nearby bars',
-          onRetry: () => ref.invalidate(nearestBarProvider),
-        ),
-        data: (info) {
-          if (info == null) {
-            return const Center(
-              child: Text('Locating...', style: TextStyle(fontSize: 14, color: Color(0xFF94a3b8))),
-            );
-          }
-          final isOpen = info.distanceMeters >= 0;
-          final abs = info.distanceMeters.abs();
-          final label = abs < 1000 ? '${abs}m' : '${(abs / 1000).toStringAsFixed(1)}km';
-          final title = isOpen ? '${info.bar.name} in' : 'All closed, nearest';
-          return Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(fontSize: 14, color: Color(0xFF94a3b8)),
+      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+      child: Row(
+        children: [
+          IconButton(
+            icon: Icon(Icons.chevron_left,
+                color: index > 0 ? Colors.white : const Color(0xFF334155)),
+            onPressed: index > 0
+                ? () => ref.read(selectedBarIndexProvider.notifier).state = index - 1
+                : null,
+          ),
+          Expanded(
+            child: nearestAsync.when(
+              loading: () => const LoadingSpinner(),
+              error: (e, _) => ErrorDisplay(
+                message: 'Could not find nearby bars',
+                onRetry: () {
+                  ref.invalidate(top5BarsProvider);
+                  ref.invalidate(nearestBarProvider);
+                },
               ),
-              const SizedBox(width: 16),
-              Text(
-                isOpen ? label : '-$label',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: isOpen ? const Color(0xFF10b981) : const Color(0xFFef4444),
-                ),
-              ),
-            ],
-          );
-        },
+              data: (info) {
+                if (info == null) {
+                  return const Center(
+                    child: Text('No bars match filters',
+                        style: TextStyle(fontSize: 14, color: Color(0xFF94a3b8))),
+                  );
+                }
+                final isOpen = info.distanceMeters >= 0;
+                final abs = info.distanceMeters.abs();
+                final label = abs < 1000 ? '${abs}m' : '${(abs / 1000).toStringAsFixed(1)}km';
+                final title = isOpen ? '${info.bar.name} in' : 'All closed, nearest';
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(title,
+                            style: const TextStyle(fontSize: 14, color: Color(0xFF94a3b8))),
+                        const SizedBox(width: 12),
+                        Text(
+                          isOpen ? label : '-$label',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: isOpen ? const Color(0xFF10b981) : const Color(0xFFef4444),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (total > 1)
+                      Text('${index + 1} / $total',
+                          style: const TextStyle(fontSize: 11, color: Color(0xFF475569))),
+                  ],
+                );
+              },
+            ),
+          ),
+          IconButton(
+            icon: Icon(Icons.chevron_right,
+                color: index < total - 1 ? Colors.white : const Color(0xFF334155)),
+            onPressed: index < total - 1
+                ? () => ref.read(selectedBarIndexProvider.notifier).state = index + 1
+                : null,
+          ),
+        ],
       ),
     );
   }
@@ -324,9 +374,29 @@ class _DrunkenSailorAppState extends ConsumerState<DrunkenSailorApp>
             _menuTile(Icons.compass_calibration, 'Compass', const Color(0xFFfbbf24), 0),
             _menuTile(Icons.radar, 'Radar', const Color(0xFF10b981), 1),
             _menuTile(Icons.show_chart, 'Geiger Counter', const Color(0xFFef4444), 2),
+            _menuTile(Icons.map, 'Map', const Color(0xFF3b82f6), 3),
             const Divider(color: Color(0xFF334155)),
-            _menuTile(Icons.map, 'Map', const Color(0xFF64748b), -1),
-            _menuTile(Icons.block, 'Blacklist', const Color(0xFF64748b), -1),
+            SwitchListTile(
+              secondary: const Icon(Icons.favorite, color: Color(0xFFec4899)),
+              title: const Text('Gay Friendly Only',
+                  style: TextStyle(color: Colors.white)),
+              value: ref.watch(gayFriendlyFilterProvider),
+              activeColor: const Color(0xFFec4899),
+              onChanged: (val) {
+                ref.read(gayFriendlyFilterProvider.notifier).state = val;
+                ref.read(selectedBarIndexProvider.notifier).state = 0;
+                ref.invalidate(top5BarsProvider);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.block, color: Color(0xFFef4444)),
+              title: const Text('Blacklist', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => const BlacklistView()));
+              },
+            ),
           ],
         ),
       ),
