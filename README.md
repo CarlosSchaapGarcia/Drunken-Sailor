@@ -42,6 +42,10 @@ This takes 10–15 minutes the first time. Only needed again if `Dockerfile` cha
 
 ## Building and running on your phone
 
+### Flutter version
+
+This project was built and tested with **Flutter 3.44.0** on the stable channel, using **Dart 3.12.0**.
+
 ### Run directly with Flutter
 
 If you have Flutter installed locally, you can also run the application directly on a connected device.
